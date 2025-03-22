@@ -428,9 +428,18 @@ class PostItemState extends State<PostItem> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          fullName,
-                          style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                        Row(
+                          children: [
+                            Text(
+                              fullName,
+                              style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                            ),
+                            if (type == 'avatar') // Kiểm tra nếu type là 'avatar'
+                              Text(
+                                " đã thay đổi ảnh đại diện",
+                                style: TextStyle(fontSize: 14, color: Colors.black),
+                              ),
+                          ],
                         ),
                         Text(
                           formattedTime(timestamp),
@@ -459,7 +468,7 @@ class PostItemState extends State<PostItem> {
                     text,
                     style: TextStyle(fontSize: 16),
                   ),
-                if (type == 'image' && fileUrl.isNotEmpty)
+                if (fileUrl.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -467,7 +476,12 @@ class PostItemState extends State<PostItem> {
                         onTap: () {
                           Navigator.push(context,
                             MaterialPageRoute(builder: (context) =>
-                                SeeMedia(post: widget.post, idUser: userId!, avt: avt, fullName: fullName,),)
+                                SeeMedia(
+                                  post: widget.post,
+                                  idUser: userId!,
+                                  avt: avt,
+                                  fullName: fullName,
+                                ))
                           );
                         },
                         child: Padding(

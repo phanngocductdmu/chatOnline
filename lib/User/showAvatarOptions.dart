@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:chatonline/message/option/personalPage/SeePhotos.dart';
 import 'createMoments.dart';
 import 'seeMomemts.dart';
+import 'package:chatonline/diary/seeMedia.dart';
 
 class ShowAvatarOptions extends StatelessWidget {
+  final Map<String, dynamic> avatarData;
   final Map<String, dynamic> userData;
   final List<Map<String, dynamic>> moments;
   final String idUser;
@@ -11,10 +13,11 @@ class ShowAvatarOptions extends StatelessWidget {
 
   const ShowAvatarOptions({
     super.key,
-    required this.userData,
+    required this.avatarData,
     required this.idUser,
     required this.hasMoment,
     required this.moments,
+    required this.userData,
   });
 
   Widget _buildOption(BuildContext context, IconData icon, String text, VoidCallback onTap) {
@@ -72,7 +75,7 @@ class ShowAvatarOptions extends StatelessWidget {
                   builder: (context) => SeeMoments(
                     idUser: idUser,
                     moments: moments ?? [],
-                    userData: userData,
+                    userData: avatarData,
                   ))
               );
             }),
@@ -82,9 +85,13 @@ class ShowAvatarOptions extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (context) => CreateMoments(idUser: idUser,)));
           }),
           _buildOption(context, Icons.visibility, "Xem ảnh đại diện", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SeePhotos(idFriend: '', avt: userData['AVT'])),
+            Navigator.push(context, MaterialPageRoute(
+                builder: (context) => SeeMedia(
+                  fullName: userData['fullName'],
+                  avt: userData['AVT'],
+                  idUser: idUser,
+                  post: avatarData,
+                ))
             );
           }),
           _buildOption(context, Icons.camera_alt, "Chụp ảnh mới", () {}),

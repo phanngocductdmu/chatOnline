@@ -79,87 +79,67 @@ class _DiaryState extends State<Diary> {
   Future<List<Map<String, dynamic>>> getMomentsOnce(String myUserId) async {
     final prefs = await SharedPreferences.getInstance();
     final cacheKey = "moments_cache_$myUserId";
-
     // Kiểm tra cache trước
     final cachedData = prefs.getString(cacheKey);
     if (cachedData != null) {
       final List<dynamic> cachedList = jsonDecode(cachedData);
       return List<Map<String, dynamic>>.from(cachedList);
     }
-
     DatabaseReference momentsRef = FirebaseDatabase.instance.ref("Moments");
     DatabaseReference friendsRef = FirebaseDatabase.instance.ref("friends/$myUserId");
-
     // Lấy danh sách bạn bè
     final friendsSnapshot = await friendsRef.once();
     final friendsData = friendsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
-
     Set friendIds = friendsData.keys.toSet();
-
     // Lấy danh sách Moments
     final momentsSnapshot = await momentsRef.once();
     final momentsData = momentsSnapshot.snapshot.value as Map<dynamic, dynamic>?;
-
     if (momentsData == null) return [];
-
     List<Map<String, dynamic>> moments = momentsData.entries.map((entry) {
       return {
         "id": entry.key,
         ...Map<String, dynamic>.from(entry.value),
       };
     }).toList();
-
     List<Map<String, dynamic>> filteredMoments = moments.where((moment) {
       String userId = moment["idUser"];
       return userId == myUserId || friendIds.contains(userId);
     }).toList();
-
     List<Map<String, dynamic>> myMoments =
     filteredMoments.where((moment) => moment["idUser"] == myUserId && moment["isMoments"] == true).toList();
 
     List<Map<String, dynamic>> friendsMoments =
     filteredMoments.where((moment) => moment["idUser"] != myUserId && moment["isMoments"] == true).toList();
     friendsMoments.sort((a, b) => (b["timestamp"] ?? 0).compareTo(a["timestamp"] ?? 0));
-
     // Kết quả cuối cùng
     final result = [...myMoments, ...friendsMoments];
-
     // Lưu vào cache
     await prefs.setString(cacheKey, jsonEncode(result));
-
     return result;
   }
 
   Stream<List<Map<String, dynamic>>> streamPosts() {
     DatabaseReference postsRef = FirebaseDatabase.instance.ref("posts");
     DatabaseReference friendsRef = FirebaseDatabase.instance.ref("friends/$idUser");
-
     return friendsRef.onValue.asyncExpand((friendsSnapshot) {
       final friendsData = friendsSnapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
       Set friendIds = friendsData.keys.toSet();
-
       return postsRef.onValue.map((postsSnapshot) {
         final postsData = postsSnapshot.snapshot.value as Map<dynamic, dynamic>?;
-
         if (postsData == null) return [];
-
         List<Map<String, dynamic>> posts = postsData.entries.map((entry) {
           return {
             "id": entry.key,
             ...Map<String, dynamic>.from(entry.value),
           };
         }).toList();
-
         List<Map<String, dynamic>> filteredPosts = posts.where((post) {
           String userId = post["userId"];
           String privacy = post["privacy"] ?? "";
-
           // Ẩn bài viết có privacy là "Chỉ mình tôi"
           if (privacy == "Chỉ mình tôi") return false;
-
           return userId == idUser || friendIds.contains(userId);
         }).toList();
-
         filteredPosts.sort((a, b) => (b["timestamp"] ?? 0).compareTo(a["timestamp"] ?? 0));
         return filteredPosts;
       });

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'comment.dart';
 import 'package:chatonline/message/option/personalPage/ReportUser.dart';
+import 'package:chatonline/diary/seeMedia.dart';
 
 class PostItem extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -425,8 +426,14 @@ class PostItemState extends State<PostItem> {
                           borderRadius: BorderRadius.circular(3),
                           child: InkWell(
                             onTap: () {
-                              // Xử lý sự kiện nhấn ở đây
-                              print("Hình ảnh đã được nhấn");
+                              Navigator.push(
+                                  context, MaterialPageRoute(builder: (context) => SeeMedia(
+                                  post: widget.post,
+                                  idUser: userId!,
+                                  avt: widget.avt,
+                                  fullName: widget.fullName,
+                                  ),
+                              ));
                             },
                             child: SizedBox(
                               width: 100,
@@ -527,6 +534,7 @@ class PostItemState extends State<PostItem> {
                             ),
                             child: Icon(Icons.insert_comment_outlined, size: 20, color: Colors.grey),
                           ),
+
                           Spacer(),
 
                           userId == IDUser

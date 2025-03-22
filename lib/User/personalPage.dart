@@ -52,14 +52,11 @@ class _PersonalPageState extends State<PersonalPage> {
     final DatabaseReference dbRef = FirebaseDatabase.instance.ref("posts");
     return dbRef.onValue.map((event) {
       if (event.snapshot.value == null) return {"posts": [], "imageCount": 0};
-
       Map<dynamic, dynamic> posts = event.snapshot.value as Map<dynamic, dynamic>;
-
       List<Map<String, dynamic>> userPosts = posts.entries
-          .where((entry) => entry.value["userId"] == idUser)
+          .where((entry) => entry.value["userId"] == idUser && entry.value["type"] != "avatar" && entry.value["type"] != "imageCover")
           .map((entry) {
         Map<dynamic, dynamic>? likes = entry.value["likes"] as Map<dynamic, dynamic>?;
-
         return {
           "id": entry.key,
           "fileUrl": entry.value["fileUrl"],
@@ -151,6 +148,25 @@ class _PersonalPageState extends State<PersonalPage> {
     });
   }
 
+  Stream<Map<String, dynamic>> getLatestAvatarStream(String userId) {
+    return FirebaseDatabase.instance
+        .ref()
+        .child('posts')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .limitToLast(1)
+        .onValue
+        .map((event) {
+      Map<dynamic, dynamic>? data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null || data.isEmpty) return {};
+      var latestAvatar = data.values.firstWhere(
+            (element) => element['type'] == 'avatar',
+        orElse: () => {},
+      );
+      return latestAvatar.isNotEmpty ? Map<String, dynamic>.from(latestAvatar) : {};
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -225,65 +241,86 @@ class _PersonalPageState extends State<PersonalPage> {
   }
 
   Widget _buildAvatar(Map<String, dynamic> userData, BuildContext context) {
-    return StreamBuilder(
-      stream: getMomentsStream(idUser!),
-      builder: (context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: getLatestAvatarStream(idUser!),
+      builder: (context, AsyncSnapshot<Map<String, dynamic>> avatarSnapshot) {
         bool hasMoment = false;
-        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          hasMoment = snapshot.data!.any((moment) => moment["isMoments"] == true);
+        if (avatarSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
         }
+        if (avatarSnapshot.hasData) {
+          Map<String, dynamic> avatarData = avatarSnapshot.data ?? {};
+          String avatarUrl = avatarData.isNotEmpty && avatarData['fileUrl'] != null
+              ? avatarData['fileUrl']
+              : '';
+          return StreamBuilder<List<Map<String, dynamic>>>(
+            stream: getMomentsStream(idUser!),
+            builder: (context, AsyncSnapshot<List<Map<String, dynamic>>> momentsSnapshot) {
+              print("aaaaaaaaaaaaaaa ${avatarData['id']}");
+              if (momentsSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                    builder: (context) => ShowAvatarOptions(
-                      userData: userData,
-                      idUser: idUser!,
-                      hasMoment: hasMoment,
-                      moments: snapshot.data ?? [],
-                    ),
-                  );
-                },
-                child: CircleAvatar(
-                  radius: hasMoment ? 57 : 50,
-                  backgroundColor: Color(0xFFF5F6F8),
-                  child: Container(
-                    padding: EdgeInsets.all(1),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: hasMoment ? Border.all(color: Colors.green.shade400, width: 3) : null,
-                    ),
-                    child: CircleAvatar(
-                      radius: 49,
-                      backgroundColor: Color(0xFFF5F6F8),
+              if (momentsSnapshot.hasData && momentsSnapshot.data!.isNotEmpty) {
+                hasMoment = momentsSnapshot.data!.any((moment) => moment["isMoments"] == true);
+              }
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (context) => ShowAvatarOptions(
+                            userData: userData,
+                            avatarData : avatarData,
+                            idUser: idUser!,
+                            hasMoment: hasMoment,
+                            moments: momentsSnapshot.data ?? [],
+                          ),
+                        );
+                      },
                       child: CircleAvatar(
-                        radius: 46,
-                        backgroundImage: userData['AVT'] != null && userData['AVT'].isNotEmpty
-                            ? NetworkImage(userData['AVT'])
-                            : null,
-                        backgroundColor: userData['AVT'] == null || userData['AVT'].isEmpty
-                            ? Colors.grey[300]
-                            : Colors.transparent,
-                        child: userData['AVT'] == null || userData['AVT'].isEmpty
-                            ? Icon(Icons.person, color: Colors.white, size: 50)
-                            : null,
+                        radius: hasMoment ? 57 : 50,
+                        backgroundColor: Color(0xFFF5F6F8),
+                        child: Container(
+                          padding: EdgeInsets.all(1),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: hasMoment ? Border.all(color: Colors.green.shade400, width: 3) : null,
+                          ),
+                          child: CircleAvatar(
+                            radius: 49,
+                            backgroundColor: Color(0xFFF5F6F8),
+                            child: CircleAvatar(
+                              radius: 46,
+                              backgroundImage: avatarUrl.isNotEmpty
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                              backgroundColor: avatarUrl.isEmpty
+                                  ? Colors.grey[300]
+                                  : Colors.transparent,
+                              child: avatarUrl.isEmpty
+                                  ? Icon(Icons.person, color: Colors.white, size: 50)
+                                  : null,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
+              );
+            },
+          );
+        } else {
+          return Center(child: Icon(Icons.person, size: 50, color: Colors.grey));
+        }
       },
     );
   }

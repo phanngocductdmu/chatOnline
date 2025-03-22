@@ -49,7 +49,6 @@ class PostScreenState extends State<PostScreen> {
     }
   }
 
-
   Future<void> _submitPost() async {
     final snackBar = SnackBar(
       content: Row(
@@ -82,7 +81,6 @@ class PostScreenState extends State<PostScreen> {
       _mediaType = null;
     });
   }
-
 
   Future<void> _savePostData(String? fileUrl) async {
     DatabaseReference postRef = FirebaseDatabase.instance.ref().child("posts").push();

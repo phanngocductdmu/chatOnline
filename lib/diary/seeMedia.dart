@@ -472,6 +472,63 @@ class SeeMediaState extends State<SeeMedia> {
                         },
                       ),
                     ),
+                    Spacer(),
+
+                    if (type == "avatar") ...[
+                      ElevatedButton(
+                        onPressed: () {
+                          // Xử lý khi nhấn nút
+                        },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(0, 36),
+                          padding: EdgeInsets.symmetric(horizontal: 60, vertical: 8),
+                          backgroundColor: Color(0xFF212121),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.white, width: 1), // Thêm viền màu trắng
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(width: 6),
+                            Text(
+                              "Đổi ảnh",
+                              style: TextStyle(fontSize: 14, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      )
+                    ] else if (type == "imageCover") ...[
+                      ElevatedButton(
+                        onPressed: () {
+
+                        },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(0, 36),
+                          padding: EdgeInsets.symmetric(horizontal: 60, vertical: 8),
+                          backgroundColor: Color(0xFF212121),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: Colors.white, width: 1), // Thêm viền màu trắng
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(width: 6),
+                            Text(
+                              "Đổi ảnh bìa",
+                              style: TextStyle(fontSize: 14, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      )
+                    ] else ...[
+                      SizedBox(),
+                    ]
                   ],
                 ),
               ],
