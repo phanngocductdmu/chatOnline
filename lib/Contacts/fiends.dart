@@ -24,6 +24,8 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadUserId();
+    All();
+    JustVisited();
   }
 
   Future<void> _loadUserId() async {

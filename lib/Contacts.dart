@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chatonline/Search/TimKiem.dart';
 import 'package:chatonline/Contacts/fiends.dart';
 import 'package:chatonline/Contacts/group.dart';
+import 'package:chatonline/Contacts/favourite.dart';
 
 class DanhBa extends StatefulWidget {
   const DanhBa({super.key});
@@ -16,7 +17,10 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // Tạo controller cho 3 tab
+    _tabController = TabController(length: 3, vsync: this);
+    Friends();
+    Group();
+    Favourite();
   }
 
   @override
@@ -108,7 +112,7 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
                 children: [
                   Friends(),
                   Group(),
-                  _buildTabContent('Danh sách yêu thích'),
+                  Favourite(),
                 ],
               ),
             ),
