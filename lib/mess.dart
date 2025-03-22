@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:chatonline/message/nhan_tin.dart';
+import 'package:chatonline/message/message.dart';
 import 'package:chatonline/message/message_item.dart';
 import 'package:chatonline/Search/TimKiem.dart';
 import 'package:intl/intl.dart';
@@ -278,7 +278,7 @@ class _TinNhanState extends State<TinNhan> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => NhanTin(
+                                  builder: (context) => Message(
                                     chatRoomId: chatRoom['roomId'],
                                     idFriend: friendId,
                                     avt: avatarUrl,

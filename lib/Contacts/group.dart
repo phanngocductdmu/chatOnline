@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'createGroup.dart';
-import 'package:chatonline/message/nhan_tin.dart';
+import 'package:chatonline/message/message.dart';
 
 class Group extends StatefulWidget {
   const Group({super.key});
@@ -43,10 +43,7 @@ class GroupState extends State<Group> {
         data.forEach((key, value) {
           if (value['typeRoom'] == true && value['members'] != null) {
             Map<dynamic, dynamic> members = value['members'];
-
-            // Kiểm tra ID của người dùng có trong danh sách members không
             bool isUserInGroup = members.keys.any((key) => key == idUser);
-
             if (isUserInGroup) {
               tempGroups.add({
                 'groupId': key,
@@ -64,7 +61,6 @@ class GroupState extends State<Group> {
             }
           }
         });
-
         setState(() {
           groupList = tempGroups;
         });
@@ -95,56 +91,63 @@ class GroupState extends State<Group> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF3F4F6),
       body: groupList.isEmpty
           ? const Center(child: Text("Không có nhóm nào"))
           :ListView.builder(
         itemCount: groupList.length,
         itemBuilder: (context, index) {
           final group = groupList[index];
-
           bool isFriend = false;
-
           if (group['typeRoom'] == true) {
             isFriend = true;
           } else if (group['typeRoom'] == false){
             final friendId = (group['members'] as List).firstWhere((id) => id != idUser);
             isFriend = _friends.contains(friendId.trim());
           }
-
           final friendId = (group['members'] as List).firstWhere((id) => id != idUser);
-
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundImage: group['groupAvatar'].isNotEmpty
-                  ? NetworkImage(group['groupAvatar'])
-                  : null,
-              child: group['groupAvatar'].isEmpty ? Icon(Icons.group) : null,
-            ),
-            title: Text(group['groupName']),
-            subtitle: Text(group['lastMessage']),
-            trailing: Text(
-              formatTimestamp(group['lastMessageTime']),
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            onTap: () {
-              Navigator.push(
-                  context, MaterialPageRoute(
-                  builder: (context) => NhanTin(
-                      chatRoomId: group['groupId'],
-                      idFriend: friendId,
-                      avt: group['groupAvatar'],
-                      fullName: group['groupName'],
-                      userId: idUser!,
-                      typeRoom: group['typeRoom'],
-                      groupAvatar: group['groupAvatar'],
-                      groupName: group['groupName'],
-                      numMembers: group['numMembers'],
-                      member: List<String>.from(group['members']),
-                      description: group['description'],
-                      isFriend: isFriend),
-              )
-              );
-            },
+          return Column(
+            children: [
+              ListTile(
+                tileColor: Colors.white,
+                leading: CircleAvatar(
+                  backgroundImage: group['groupAvatar'].isNotEmpty
+                      ? NetworkImage(group['groupAvatar'])
+                      : null,
+                  child: group['groupAvatar'].isEmpty ? Icon(Icons.group) : null,
+                ),
+                title: Text(group['groupName']),
+                subtitle: Text(group['lastMessage']),
+                trailing: Text(
+                  formatTimestamp(group['lastMessageTime']),
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                onTap: () {
+                  Navigator.push(
+                      context, MaterialPageRoute(
+                      builder: (context) => Message(
+                          chatRoomId: group['groupId'],
+                          idFriend: friendId,
+                          avt: group['groupAvatar'],
+                          fullName: group['groupName'],
+                          userId: idUser!,
+                          typeRoom: group['typeRoom'],
+                          groupAvatar: group['groupAvatar'],
+                          groupName: group['groupName'],
+                          numMembers: group['numMembers'],
+                          member: List<String>.from(group['members']),
+                          description: group['description'],
+                          isFriend: isFriend
+                      ))
+                  );
+                },
+              ),
+              const Divider(
+                thickness: 1,
+                height: 1,
+                color: Color(0xFFF3F4F6),
+              ),
+            ],
           );
         },
       ),

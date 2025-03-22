@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'trang_chu.dart';
+import 'HomePage.dart';
 import 'package:chatonline/firebase/auth_service.dart';
 
 void main() {

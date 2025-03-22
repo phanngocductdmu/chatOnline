@@ -18,9 +18,6 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    Friends();
-    Group();
-    Favourite();
   }
 
   @override
@@ -38,6 +35,7 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
     return GestureDetector(
       onTap: _hideKeyboard,
       child: Scaffold(
+        backgroundColor: Color(0xFFF3F4F6),
         appBar: AppBar(
           leading: Padding(
             padding: const EdgeInsets.only(left: 10),
@@ -105,7 +103,6 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
                 ],
               ),
             ),
-            // Nội dung các Tab
             Expanded(
               child: TabBarView(
                 controller: _tabController,

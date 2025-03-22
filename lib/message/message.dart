@@ -7,15 +7,15 @@ import 'package:chatonline/message/call/video_call.dart';
 import 'package:chatonline/message/option/optionMessage.dart';
 import 'package:chatonline/message/optionGroup/optionGroup.dart';
 import 'package:chatonline/message/optionGroup/addGroup.dart';
-import 'package:chatonline/trang_chu.dart';
+import 'package:chatonline/HomePage.dart';
 
-class NhanTin extends StatefulWidget {
+class Message extends StatefulWidget {
   final String chatRoomId, idFriend, avt, fullName, userId, groupAvatar, groupName, description;
   final bool typeRoom, isFriend;
   final int numMembers;
   final List<String> member;
 
-  const NhanTin({
+  const Message({
     super.key,
     required this.chatRoomId,
     required this.idFriend,
@@ -32,10 +32,10 @@ class NhanTin extends StatefulWidget {
   });
 
   @override
-  NhanTinState createState() => NhanTinState();
+  MessageState createState() => MessageState();
 }
 
-class NhanTinState extends State<NhanTin> {
+class MessageState extends State<Message> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   bool _isTyping = false;
   bool isSearchActive = false;

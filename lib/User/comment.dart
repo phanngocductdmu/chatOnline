@@ -1,12 +1,10 @@
 import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../message/option/personalPage/ReportUser.dart';
 
 class Comment extends StatefulWidget {
@@ -663,6 +661,7 @@ class _CommentState extends State<Comment> {
                                   replyingTo = comment['userName'];
                                   commentText = comment['comment'];
                                   replyingCommentId = commentId;
+                                  showReplies = true;
                                 });
                               },
                               child: Text("Trả lời", style: TextStyle(fontSize: 12, color: Colors.black)),
@@ -675,7 +674,7 @@ class _CommentState extends State<Comment> {
                                   });
                                 },
                                 child: Text(
-                                  showReplies ? "Ẩn" : "Xem thêm phản hồi",
+                                  showReplies ? "Ẩn" : "Xem thêm",
                                   style: TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
                               ),

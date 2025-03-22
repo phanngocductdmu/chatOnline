@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'search_item.dart';
 import 'package:flutter/material.dart';
-import 'package:chatonline/message/nhan_tin.dart';
+import 'package:chatonline/message/message.dart';
 import 'package:chatonline/message/option/personalPage/personalPageF.dart';
 
 class TimKiem extends StatefulWidget {
@@ -337,7 +337,7 @@ class _TimKiemState extends State<TimKiem> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => NhanTin(
+                          builder: (context) => Message(
                             chatRoomId: item['roomId'],
                             idFriend: friendId,
                             avt: friendInfo['AVT'] ?? '',
@@ -368,7 +368,7 @@ class _TimKiemState extends State<TimKiem> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => NhanTin(
+                      builder: (context) => Message(
                         chatRoomId: item['roomId'],
                         idFriend: item['FriendID'].isNotEmpty ? item['FriendID'].first : '',
                         avt: item['groupAvatar'] ?? '',
@@ -392,7 +392,7 @@ class _TimKiemState extends State<TimKiem> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => NhanTin(
+                      builder: (context) => Message(
                         chatRoomId: item['roomId'],
                         idFriend: item['FriendID'].isNotEmpty ? item['FriendID'].first : '',
                         avt: item['groupAvatar'] ?? '',

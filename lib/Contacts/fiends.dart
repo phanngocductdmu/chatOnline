@@ -24,8 +24,6 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadUserId();
-    All();
-    JustVisited();
   }
 
   Future<void> _loadUserId() async {
@@ -95,74 +93,92 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF3F4F6),
       body: DefaultTabController(
         length: 2,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(), // Hiệu ứng cuộn mượt
           child: Column(
             children: [
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                leading: const Icon(Icons.person_add, color: Colors.teal),
-                title: const Text('Lời mời kết bạn'),
-                trailing: const Icon(Icons.navigate_next, color: Colors.teal),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
-                  );
-                },
+              Container(
+                color: Colors.white, // Đặt màu nền trắng
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+                  leading: const Icon(Icons.person_add, color: Colors.teal),
+                  title: const Text('Lời mời kết bạn'),
+                  trailing: const Icon(Icons.navigate_next, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
+                    );
+                  },
+                ),
               ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                leading: const Icon(Icons.contacts, color: Colors.blue),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Danh bạ máy'),
-                    Text(
-                      'Liên hệ có dùng Test',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
+              Container(
+                color: Colors.white, // Đặt màu nền trắng
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+                  leading: const Icon(Icons.contacts, color: Colors.blue),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Danh bạ máy'),
+                      Text(
+                        'Liên hệ có dùng Test',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  trailing: const Icon(Icons.navigate_next, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                color: Colors.white, // Đặt màu nền trắng
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+                  leading: const Icon(Icons.cake, color: Colors.pink),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Lịch sinh nhật'),
+                      Text(
+                        'Theo dõi sinh nhật của bạn bè',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  trailing: const Icon(Icons.navigate_next, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
+                    );
+                  },
+                ),
+              ),
+              const Divider(
+                thickness: 1,
+                height: 1,
+                color: Color(0xFFF3F4F6),
+              ),
+              Container(
+                color: Colors.white, // Đặt màu nền trắng cho TabBar
+                child: TabBar(
+                  labelColor: Colors.green[700],
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.green[700],
+                  tabs: [
+                    Tab(text: 'Tất cả $friendCount'),
+                    Tab(text: 'Mới truy cập $friendOnlineCount'),
                   ],
                 ),
-                trailing: const Icon(Icons.navigate_next, color: Colors.teal),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
-                leading: const Icon(Icons.cake, color: Colors.pink),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Lịch sinh nhật'),
-                    Text(
-                      'Theo dõi sinh nhật của bạn bè',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                trailing: const Icon(Icons.navigate_next, color: Colors.teal),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoiMoiKetBanScreen()),
-                  );
-                },
-              ),
-              TabBar(
-                labelColor: Colors.green[700],
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.green[700],
-                tabs: [
-                  Tab(text: 'Tất cả $friendCount'),
-                  Tab(text: 'Mới truy cập $friendOnlineCount'),
-                ],
               ),
               SizedBox(
                 height: MediaQuery.of(context).size.height * 0.7, // Giới hạn chiều cao TabBarView

@@ -17,7 +17,6 @@ class FavouriteState extends State<Favourite> {
   @override
   void initState() {
     super.initState();
-
     _loadUserId();
   }
 
@@ -94,5 +93,4 @@ class FavouriteState extends State<Favourite> {
       ),
     );
   }
-
 }

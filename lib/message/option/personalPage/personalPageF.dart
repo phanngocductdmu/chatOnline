@@ -5,7 +5,7 @@ import 'package:chatonline/message/call/call.dart';
 import 'package:chatonline/User/postItem.dart';
 import 'SeePhotos.dart';
 import 'package:chatonline/Search/option.dart';
-import 'package:chatonline/message/nhan_tin.dart';
+import 'package:chatonline/message/message.dart';
 
 class PersonalPage extends StatefulWidget {
   final String idFriend, idChatRoom, nickName, idUser, avt;
@@ -555,7 +555,7 @@ class _PersonalPageState extends State<PersonalPage> {
                 onPressed: () {
                   Navigator.push(context,
                     MaterialPageRoute(builder:
-                      (context) => NhanTin(
+                      (context) => Message(
                         chatRoomId: '',
                         idFriend: widget.idFriend,
                         avt: widget.avt,
