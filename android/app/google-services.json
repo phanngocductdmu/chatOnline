@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "931006144509",
+    "firebase_url": "https://b5lab1-default-rtdb.firebaseio.com",
+    "project_id": "b5lab1",
+    "storage_bucket": "b5lab1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931006144509:android:09f3403fbe895229058394",
+        "android_client_info": {
+          "package_name": "com.example.chatonline"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGeBVzUr7OgkcCnD448pH6UOoLBMR6Bgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:931006144509:android:35eda01bd443cb5b058394",
+        "android_client_info": {
+          "package_name": "com.example.testdangnhap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGeBVzUr7OgkcCnD448pH6UOoLBMR6Bgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

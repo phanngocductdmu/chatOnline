@@ -1,0 +1,97 @@
+import 'package:flutter/material.dart';
+import 'package:chatonline/message/option/personalPage/SeePhotos.dart';
+import 'createMoments.dart';
+import 'seeMomemts.dart';
+
+class ShowAvatarOptions extends StatelessWidget {
+  final Map<String, dynamic> userData;
+  final List<Map<String, dynamic>> moments;
+  final String idUser;
+  final bool hasMoment;
+
+  const ShowAvatarOptions({
+    super.key,
+    required this.userData,
+    required this.idUser,
+    required this.hasMoment,
+    required this.moments,
+  });
+
+  Widget _buildOption(BuildContext context, IconData icon, String text, VoidCallback onTap) {
+    return Column(
+      children: [
+        ListTile(
+          leading: Icon(icon, color: Colors.grey),
+          title: Text(
+            text,
+            style: TextStyle(color: Colors.black),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            onTap();
+          },
+        ),
+        Divider(thickness: 1, color: Colors.grey[200], indent: 56),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.grey,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Tùy chọn ảnh đại diện",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Điều kiện kiểm tra hasMoment trước khi hiển thị "Xem khoảnh khắc"
+          if (hasMoment)
+            _buildOption(context, Icons.visibility_outlined, "Xem khoảnh khắc", () {
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => SeeMoments(
+                    idUser: idUser,
+                    moments: moments ?? [],
+                    userData: userData,
+                  ))
+              );
+            }),
+
+          const SizedBox(height: 8),
+          _buildOption(context, Icons.add_box_outlined, "Tạo khoảnh khắc", () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => CreateMoments(idUser: idUser,)));
+          }),
+          _buildOption(context, Icons.visibility, "Xem ảnh đại diện", () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SeePhotos(idFriend: '', avt: userData['AVT'])),
+            );
+          }),
+          _buildOption(context, Icons.camera_alt, "Chụp ảnh mới", () {}),
+          _buildOption(context, Icons.image, "Chọn ảnh trên máy", () {}),
+        ],
+      ),
+    );
+  }
+}
+
