@@ -72,7 +72,7 @@ class MessageState extends State<Message> {
           icon: const Icon(Icons.chevron_left, size: 27, color: Colors.white),
           onPressed: () => Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => TrangChu()),
+            MaterialPageRoute(builder: (context) => HomePage()),
               (route) => route.isFirst,
           )
         ),

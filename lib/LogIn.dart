@@ -50,7 +50,7 @@ class _MyHomePageState extends State<LoginScreen> {
       if (_isLoggedIn) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => TrangChu()),
+          MaterialPageRoute(builder: (context) => HomePage()),
               (Route<dynamic> route) => false,
         );
       } else {

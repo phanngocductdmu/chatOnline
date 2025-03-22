@@ -6,14 +6,14 @@ import 'package:chatonline/message/message_item.dart';
 import 'package:chatonline/Search/TimKiem.dart';
 import 'package:intl/intl.dart';
 
-class TinNhan extends StatefulWidget {
-  const TinNhan({super.key});
+class Mess extends StatefulWidget {
+  const Mess({super.key});
 
   @override
-  State<TinNhan> createState() => _TinNhanState();
+  State<Mess> createState() => _MessState();
 }
 
-class _TinNhanState extends State<TinNhan> {
+class _MessState extends State<Mess> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   String? idUser;
   List<Map<String, dynamic>> chatRooms = [];
@@ -55,35 +55,49 @@ class _TinNhanState extends State<TinNhan> {
 
   void _fetchChatRooms() {
     _database.child('chatRooms').onValue.listen((event) {
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data != null) {
-        List<Map<String, dynamic>> rooms = [];
-        data.forEach((key, value) {
-          if (value['members'] != null && (value['members'] as Map).containsKey(idUser)) {
-            String? nickname;
-            final members = value['members'] as Map<dynamic, dynamic>;
-            members.forEach((userId, _) {
-              if (userId != idUser) {
-                nickname = value['nicknames']?[userId];
-              }
-            });
-            rooms.add({
-              'roomId': key,
-              'lastMessage': value['lastMessage'] ?? 'Hãy trò chuyện với người bạn mới',
-              'timestamp': value['lastMessageTime'] ?? 0,
-              'status': value['status'] ?? 'Đã gửi',
-              'members': members.keys.toList(),
-              'numMembers': members.length,
-              'nickname': nickname,
-              'typeRoom': value['typeRoom'] ?? false,
-              'groupAvatar': value['groupAvatar'] ?? '',
-              'groupName': value['groupName'] ?? '',
-              'description': value['description'] ?? '',
-            });
-          }
-        });
-        rooms.sort((a, b) => (int.tryParse(b['timestamp'].toString()) ?? 0)
-            .compareTo(int.tryParse(a['timestamp'].toString()) ?? 0));
+      if (event.snapshot.value == null) {
+        return;
+      }
+      final Object? rawData = event.snapshot.value;
+      if (rawData is! Map) {
+        // print("❌ Dữ liệu chatRooms không hợp lệ: $rawData");
+        return;
+      }
+      Map<dynamic, dynamic> data = rawData;
+      List<Map<String, dynamic>> rooms = [];
+
+      data.forEach((key, value) {
+        if (value is! Map) {
+          // print("⚠️ Bỏ qua phòng chat $key vì dữ liệu không hợp lệ: $value");
+          return;
+        }
+        if (value['members'] is Map && value['members'].containsKey(idUser)) {
+          String? nickname;
+          final Map<dynamic, dynamic> members = value['members'];
+
+          members.forEach((userId, _) {
+            if (userId != idUser) {
+              nickname = value['nicknames']?[userId];
+            }
+          });
+          rooms.add({
+            'roomId': key,
+            'lastMessage': value['lastMessage'] ?? 'Hãy trò chuyện với người bạn mới',
+            'timestamp': value['lastMessageTime'] ?? 0,
+            'status': value['status'] ?? 'Đã gửi',
+            'members': members.keys.toList(),
+            'numMembers': members.length,
+            'nickname': nickname,
+            'typeRoom': value['typeRoom'] ?? false,
+            'groupAvatar': value['groupAvatar'] ?? '',
+            'groupName': value['groupName'] ?? '',
+            'description': value['description'] ?? '',
+          });
+        }
+      });
+      rooms.sort((a, b) => (int.tryParse(b['timestamp'].toString()) ?? 0)
+          .compareTo(int.tryParse(a['timestamp'].toString()) ?? 0));
+      if (mounted) {
         setState(() {
           chatRooms = rooms;
         });

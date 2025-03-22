@@ -1,9 +1,9 @@
+import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../message/call/call.dart';
 import '../message/message.dart';
-
 
 class JustVisited extends StatefulWidget {
   const JustVisited({super.key});
@@ -29,8 +29,27 @@ class JustVisitedState extends State<JustVisited> {
     });
 
     if (idUser != null) {
-      listenToOnlineFriends(idUser!);
+      _loadCachedFriends(); // Tải từ cache trước
+      listenToOnlineFriends(idUser!); // Cập nhật dữ liệu mới
     }
+  }
+
+  Future<void> _loadCachedFriends() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? cachedData = prefs.getString('cachedFriendsList');
+
+    if (cachedData != null) {
+      List<dynamic> cachedList = jsonDecode(cachedData);
+      setState(() {
+        friendsList = List<Map<String, dynamic>>.from(cachedList);
+      });
+    }
+  }
+
+  Future<void> _cacheFriendsList(List<Map<String, dynamic>> allFriend) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String encodedData = jsonEncode(allFriend);
+    await prefs.setString('cachedFriendsList', encodedData);
   }
 
   Future<void> listenToOnlineFriends(String idUser) async {
@@ -83,11 +102,14 @@ class JustVisitedState extends State<JustVisited> {
         setState(() {
           friendsList = allFriend;
         });
+
+        _cacheFriendsList(allFriend); // Lưu vào cache
       }
     }).catchError((error) {
       print("❌ Lỗi khi tải danh sách bạn bè: $error");
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

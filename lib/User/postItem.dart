@@ -423,18 +423,23 @@ class PostItemState extends State<PostItem> {
                         padding: const EdgeInsets.only(top: 8),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(3),
-                          child: SizedBox(
-                            width: 100,
-                            height: 100,
-                            child: Image.network(
-                              fileUrl,
-                              fit: BoxFit.cover,
+                          child: InkWell(
+                            onTap: () {
+                              // Xử lý sự kiện nhấn ở đây
+                              print("Hình ảnh đã được nhấn");
+                            },
+                            child: SizedBox(
+                              width: 100,
+                              height: 100,
+                              child: Image.network(
+                                fileUrl,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
                       ),
                       SizedBox(height: 8),
-
                       /// Tim và bình luận
                       Row(
                         children: [

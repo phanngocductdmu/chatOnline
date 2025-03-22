@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,7 +16,6 @@ class AllState extends State<All> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   List<Map<String, dynamic>> friendsList = [];
   String? idUser;
-  List<String> friends = [];
 
   @override
   void initState() {
@@ -30,10 +30,25 @@ class AllState extends State<All> {
     });
 
     if (idUser != null) {
-      _fetchFriends(idUser!);
+      _loadCachedFriends(); // Load cache trước
+      _fetchFriends(idUser!); // Cập nhật từ Firebase sau
     }
   }
 
+  /// Load danh sách bạn bè từ cache
+  Future<void> _loadCachedFriends() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? cachedFriends = prefs.getString('cachedFriends');
+
+    if (cachedFriends != null) {
+      List<dynamic> cachedData = jsonDecode(cachedFriends);
+      setState(() {
+        friendsList = List<Map<String, dynamic>>.from(cachedData);
+      });
+    }
+  }
+
+  /// Fetch danh sách bạn bè từ Firebase và lưu vào cache
   Future<void> _fetchFriends(String idUser) async {
     _database.child('chatRooms').once().then((DatabaseEvent event) async {
       if (event.snapshot.value != null) {
@@ -79,6 +94,10 @@ class AllState extends State<All> {
 
         allFriend.sort((a, b) => a['fullName'].toLowerCase().compareTo(b['fullName'].toLowerCase()));
 
+        /// Lưu dữ liệu vào cache
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString('cachedFriends', jsonEncode(allFriend));
+
         setState(() {
           friendsList = allFriend;
         });
@@ -107,35 +126,32 @@ class AllState extends State<All> {
                 Container(
                   color: Colors.white,
                   child: ListTile(
-                    contentPadding:
-                    EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                     leading: CircleAvatar(
                       radius: 24,
                       backgroundColor: Colors.grey[300],
-                      backgroundImage: group['avatar'].isNotEmpty
-                          ? NetworkImage(group['avatar'])
-                          : null,
-                      child: group['avatar'].isEmpty
-                          ? Icon(Icons.person, size: 30, color: Colors.white)
-                          : null,
+                      backgroundImage: group['avatar'].isNotEmpty ? NetworkImage(group['avatar']) : null,
+                      child: group['avatar'].isEmpty ? Icon(Icons.person, size: 30, color: Colors.white) : null,
                     ),
                     title: Text(
                       group['fullName'],
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     trailing: IconButton(
                       icon: Icon(Icons.call, color: Colors.grey),
                       onPressed: () {
                         Navigator.push(
-                            context, MaterialPageRoute(
+                          context,
+                          MaterialPageRoute(
                             builder: (context) => Call(
-                                chatRoomId: group['groupId'],
-                                idFriend: group['friendId'],
-                                avt: group['avatar'],
-                                fullName: group['fullName'],
-                                userId: idUser!),
-                        ));
+                              chatRoomId: group['groupId'],
+                              idFriend: group['friendId'],
+                              avt: group['avatar'],
+                              fullName: group['fullName'],
+                              userId: idUser!,
+                            ),
+                          ),
+                        );
                       },
                     ),
                     onTap: () {

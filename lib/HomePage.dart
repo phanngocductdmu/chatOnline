@@ -6,19 +6,19 @@ import 'package:chatonline/discover/discover.dart';
 import 'package:chatonline/diary/diary.dart';
 
 
-class TrangChu extends StatefulWidget {
-  const TrangChu({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<TrangChu> createState() => TrangChuState();
+  State<HomePage> createState() => HomePageState();
 }
 
-class TrangChuState extends State<TrangChu> {
+class HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   // Danh sách các widget cho từng tab
   static const List<Widget> _widgetOptions = <Widget>[
-    TinNhan(),
+    Mess(),
     DanhBa(),
     Discover(),
     Diary(),

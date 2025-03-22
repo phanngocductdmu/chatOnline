@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'seeMomemts.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -76,6 +77,16 @@ class _DiaryState extends State<Diary> {
   }
 
   Future<List<Map<String, dynamic>>> getMomentsOnce(String myUserId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = "moments_cache_$myUserId";
+
+    // Kiểm tra cache trước
+    final cachedData = prefs.getString(cacheKey);
+    if (cachedData != null) {
+      final List<dynamic> cachedList = jsonDecode(cachedData);
+      return List<Map<String, dynamic>>.from(cachedList);
+    }
+
     DatabaseReference momentsRef = FirebaseDatabase.instance.ref("Moments");
     DatabaseReference friendsRef = FirebaseDatabase.instance.ref("friends/$myUserId");
 
@@ -110,8 +121,13 @@ class _DiaryState extends State<Diary> {
     filteredMoments.where((moment) => moment["idUser"] != myUserId && moment["isMoments"] == true).toList();
     friendsMoments.sort((a, b) => (b["timestamp"] ?? 0).compareTo(a["timestamp"] ?? 0));
 
-    // Ghép danh sách Moments của bạn lên đầu
-    return [...myMoments, ...friendsMoments];
+    // Kết quả cuối cùng
+    final result = [...myMoments, ...friendsMoments];
+
+    // Lưu vào cache
+    await prefs.setString(cacheKey, jsonEncode(result));
+
+    return result;
   }
 
   Stream<List<Map<String, dynamic>>> streamPosts() {

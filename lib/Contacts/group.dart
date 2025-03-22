@@ -98,13 +98,6 @@ class GroupState extends State<Group> {
         itemCount: groupList.length,
         itemBuilder: (context, index) {
           final group = groupList[index];
-          bool isFriend = false;
-          if (group['typeRoom'] == true) {
-            isFriend = true;
-          } else if (group['typeRoom'] == false){
-            final friendId = (group['members'] as List).firstWhere((id) => id != idUser);
-            isFriend = _friends.contains(friendId.trim());
-          }
           final friendId = (group['members'] as List).firstWhere((id) => id != idUser);
           return Column(
             children: [
@@ -137,7 +130,7 @@ class GroupState extends State<Group> {
                           numMembers: group['numMembers'],
                           member: List<String>.from(group['members']),
                           description: group['description'],
-                          isFriend: isFriend
+                          isFriend: true
                       ))
                   );
                 },

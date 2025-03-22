@@ -49,6 +49,7 @@ class SeeMomentsState extends State<SeeMoments> {
         _isTextFieldFocused = _focusNode.hasFocus;
       });
     });
+
   }
 
   void _fetchUserInfo(String userId) {
