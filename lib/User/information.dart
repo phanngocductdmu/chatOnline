@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'changeNickname.dart';
 
 class Information extends StatefulWidget {
-  final String idFriend, idChatRoom, nickName;
-  final bool isFriend;
+  final String idUser;
+  final Map<String, dynamic> userData;
 
-  const Information({super.key, required this.idFriend, required this.idChatRoom, required this.nickName, required this.isFriend});
+  const Information({super.key, required this.idUser, required this.userData});
 
   @override
   State<Information> createState() => _InformationState();
@@ -25,7 +24,7 @@ class _InformationState extends State<Information> {
   }
 
   void _fetchUserData() {
-    _database.child('users').child(widget.idFriend).onValue.listen((event) {
+    _database.child('users').child(widget.idUser).onValue.listen((event) {
       if (event.snapshot.value != null) {
         setState(() {
           userData = Map<String, dynamic>.from(event.snapshot.value as Map);
@@ -70,19 +69,19 @@ class _InformationState extends State<Information> {
   }
 
   void _openEditNameBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return ChangeNickname(nickName: widget.nickName, idChatRoom: widget.idChatRoom, idFriend: widget.idFriend);
-      },
-    );
+    // showModalBottomSheet(
+    //   context: context,
+    //   builder: (context) {
+    //     return ChangeNickname(nickName: widget.nickName, idChatRoom: widget.idChatRoom, idFriend: widget.idFriend);
+    //   },
+    // );
   }
 
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Map<String, dynamic>>(
-      stream: getImageCover(widget.idFriend),
+      stream: getImageCover(widget.idUser),
       builder: (context, snapshot) {
         String? coverImageUrl;
 
@@ -174,7 +173,7 @@ class _InformationState extends State<Information> {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              widget.nickName ?? userData!['fullName'],
+                              widget.userData!['fullName'],
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -182,8 +181,7 @@ class _InformationState extends State<Information> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            widget.isFriend
-                                ? GestureDetector(
+                            GestureDetector(
                               onTap: _openEditNameBottomSheet,
                               child: Container(
                                 padding: EdgeInsets.all(4),
@@ -198,7 +196,6 @@ class _InformationState extends State<Information> {
                                 ),
                               ),
                             )
-                                : SizedBox()
                           ],
                         ),
                       ],
@@ -233,13 +230,13 @@ class _InformationState extends State<Information> {
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(Icons.person, "Giới tính",
-                              widget.isFriend ? userData!['gender'] ?? "Người dùng chưa cập nhật" : "***"),
+                              widget.userData!['gender'] ?? "Người dùng chưa cập nhật"),
                           _divider(),
                           _buildInfoRow(Icons.cake, "Ngày sinh",
-                              widget.isFriend ? userData!['namSinh'] ?? "Người dùng chưa cập nhật" : "*******"),
+                              widget.userData!['namSinh'] ?? "Người dùng chưa cập nhật"),
                           _divider(),
                           _buildInfoRow(Icons.email, "Email",
-                              widget.isFriend ? userData!['email'] ?? "Người dùng chưa cập nhật" : "************"),
+                              widget.userData['email'] ?? "Người dùng chưa cập nhật"),
                         ],
                       ),
                     ),

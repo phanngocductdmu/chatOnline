@@ -59,7 +59,6 @@ class SeeMediaState extends State<SeeMedia> {
 
   void toggleLike(String postId, String userId, bool isLiked) {
     DatabaseReference likeRef = FirebaseDatabase.instance.ref("posts/$postId/likes/$userId");
-
     if (isLiked) {
       likeRef.remove().then((_) {
         setState(() {
@@ -309,7 +308,7 @@ class SeeMediaState extends State<SeeMedia> {
 
   @override
   Widget build(BuildContext context) {
-    String id = widget.post['id'] ?? '';
+    String id = widget.post['id'] ?? widget.post['key'] ;
     String text = widget.post['text'] ?? '';
     String fileUrl = widget.post['fileUrl'] ?? '';
     String privacy = widget.post['privacy'] ?? '';

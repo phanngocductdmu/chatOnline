@@ -385,24 +385,26 @@ class PostItemState extends State<PostItem> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: EdgeInsets.only(left: 15),
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                formattedTime(timestamp),
-                style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+        if (type == 'image' && fileUrl.isNotEmpty && type != 'avatar' && type != 'imageCover')
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 15),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  formattedTime(timestamp),
+                  style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                ),
               ),
             ),
           ),
-        ),
         SizedBox(height: 4),
+        if (type == 'image' && fileUrl.isNotEmpty && type != 'avatar' && type != 'imageCover')
         Card(
           color: Colors.white,
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -416,7 +418,7 @@ class PostItemState extends State<PostItem> {
                     text,
                     style: TextStyle(fontSize: 16),
                   ),
-                if (type == 'image' && fileUrl.isNotEmpty)
+                if (fileUrl.isNotEmpty && type != 'avatar' && type != 'imageCover')
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -427,13 +429,16 @@ class PostItemState extends State<PostItem> {
                           child: InkWell(
                             onTap: () {
                               Navigator.push(
-                                  context, MaterialPageRoute(builder: (context) => SeeMedia(
-                                  post: widget.post,
-                                  idUser: userId!,
-                                  avt: widget.avt,
-                                  fullName: widget.fullName,
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SeeMedia(
+                                    post: widget.post,
+                                    idUser: userId!,
+                                    avt: widget.avt,
+                                    fullName: widget.fullName,
                                   ),
-                              ));
+                                ),
+                              );
                             },
                             child: SizedBox(
                               width: 100,
@@ -447,7 +452,7 @@ class PostItemState extends State<PostItem> {
                         ),
                       ),
                       SizedBox(height: 8),
-                      /// Tim và bình luận
+                      // Tim và bình luận
                       Row(
                         children: [
                           likes.isNotEmpty
@@ -474,12 +479,9 @@ class PostItemState extends State<PostItem> {
                                     style: TextStyle(fontSize: 12, color: Colors.grey),
                                   );
                                 }
-
-                                // Ẩn nếu không có bình luận
                                 if (snapshot.data == 0) {
                                   return SizedBox.shrink();
                                 }
-
                                 return Text(
                                   "${snapshot.data} bình luận",
                                   style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
@@ -534,9 +536,7 @@ class PostItemState extends State<PostItem> {
                             ),
                             child: Icon(Icons.insert_comment_outlined, size: 20, color: Colors.grey),
                           ),
-
                           Spacer(),
-
                           userId == IDUser
                               ? Icon(
                             privacy == "Tất cả bạn bè"
@@ -550,7 +550,6 @@ class PostItemState extends State<PostItem> {
                             color: Colors.grey[700],
                           )
                               : SizedBox(),
-
                           userId == IDUser
                               ? IconButton(
                             onPressed: () {

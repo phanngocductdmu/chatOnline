@@ -3,9 +3,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:chatonline/message/option/personalPage/option.dart';
 import 'package:chatonline/message/call/call.dart';
 import 'package:chatonline/User/postItem.dart';
-import 'SeePhotos.dart';
 import 'package:chatonline/Search/option.dart';
 import 'package:chatonline/message/message.dart';
+import 'package:chatonline/diary/seeMedia.dart';
+import 'seeMomemtsF.dart';
 
 class PersonalPage extends StatefulWidget {
   final String idFriend, idChatRoom, nickName, idUser, avt;
@@ -72,7 +73,6 @@ class _PersonalPageState extends State<PersonalPage> {
       return {"posts": userPosts, "imageCount": imageCount, "videoCount": videoCount};
     });
   }
-
 
   Future<int> fetchUserImageCount() async {
     final DatabaseReference dbRef = FirebaseDatabase.instance.ref("posts");
@@ -274,6 +274,95 @@ class _PersonalPageState extends State<PersonalPage> {
     });
   }
 
+  Stream<Map<String, dynamic>> getAvatar(String userId) {
+    return FirebaseDatabase.instance
+        .ref()
+        .child('posts')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) {
+        return {};
+      }
+      Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+      var avatars = data.entries
+          .where((entry) => entry.value['type'] == 'avatar')
+          .toList();
+
+      if (avatars.isEmpty) {
+        return {};
+      }
+      avatars.sort((a, b) => b.value['timestamp'].compareTo(a.value['timestamp']));
+      var latestAvatar = avatars.first;
+      Map<String, dynamic> avatarData = Map<String, dynamic>.from(latestAvatar.value);
+      avatarData['key'] = latestAvatar.key;
+      return avatarData;
+    });
+  }
+
+  Stream<Map<String, dynamic>> getImageCover(String userId) {
+    return FirebaseDatabase.instance
+        .ref()
+        .child('posts')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) {
+        return {};
+      }
+
+      Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+
+      // Lọc danh sách các bài đăng có type = "imageCover"
+      var imageCovers = data.entries
+          .where((entry) => entry.value['type'] == 'imageCover')
+          .toList();
+
+      if (imageCovers.isEmpty) {
+        return {};
+      }
+
+      // Sắp xếp theo timestamp giảm dần (mới nhất lên đầu)
+      imageCovers.sort((a, b) => b.value['timestamp'].compareTo(a.value['timestamp']));
+
+      // Lấy ảnh mới nhất
+      var latestCover = imageCovers.first;
+
+      Map<String, dynamic> coverData = Map<String, dynamic>.from(latestCover.value);
+      coverData['key'] = latestCover.key;
+      return coverData;
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getMomentsStream(String userId) {
+    DatabaseReference momentsRef = FirebaseDatabase.instance.ref("Moments");
+
+    return momentsRef
+        .orderByChild("idUser")
+        .equalTo(userId)
+        .onValue
+        .map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+
+      if (data == null) return [];
+
+      return data.entries.map((entry) {
+        return {
+          "id": entry.key,
+          ...Map<String, dynamic>.from(entry.value),
+        };
+      }).toList();
+    });
+  }
+
+  Stream<DatabaseEvent> getStoryViewDataById(String momentId) {
+    DatabaseReference ref = FirebaseDatabase.instance
+        .ref('story_views/$momentId/viewers');
+    return ref.onValue;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,7 +371,7 @@ class _PersonalPageState extends State<PersonalPage> {
         future: fetchUserInfo(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return Center(child: SizedBox());
           }
           if (snapshot.hasError || snapshot.data == null) {
             return Center(child: Text("Không thể tải thông tin"));
@@ -302,7 +391,7 @@ class _PersonalPageState extends State<PersonalPage> {
                       left: MediaQuery.of(context).size.width / 2 - 50,
                       child: IgnorePointer(
                         ignoring: false,
-                        child: _buildAvatar(userData),
+                        child: _buildAvatar(userData, context),
                       ),
                     ),
                   ],
@@ -322,62 +411,166 @@ class _PersonalPageState extends State<PersonalPage> {
   }
 
   Widget _buildCoverImage(Map<String, dynamic> userData) {
-    return GestureDetector(
-      onTap: () {
-        if (userData['Bia'] != null && userData['Bia'].isNotEmpty) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SeePhotos(idFriend: widget.idFriend, avt: userData['Bia']),
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: getImageCover(widget.idFriend),
+      builder: (context, AsyncSnapshot<Map<String, dynamic>> imageCoverSnapshot) {
+        if (imageCoverSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: SizedBox());
+        }
+        String imageCoverUrl = userData['Bia'] ?? '';
+        if (imageCoverSnapshot.hasData && imageCoverSnapshot.data!.isNotEmpty) {
+          imageCoverUrl = imageCoverSnapshot.data!['fileUrl'] ?? imageCoverUrl;
+          Map<String, dynamic> imageCoverData = imageCoverSnapshot.data ?? {};
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => SeeMedia(
+                    fullName: userData['fullName'],
+                    avt: userData['AVT'],
+                    idUser: widget.idUser,
+                    post: imageCoverData,
+                  ))
+              );
+            },
+            child: SizedBox(
+              width: double.infinity,
+              height: 250,
+              child: imageCoverUrl.isNotEmpty
+                  ? Image.network(
+                imageCoverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: Center(child: Text("Không tải được ảnh")),
+                ),
+              )
+                  : Container(color: Colors.grey[300]),
             ),
           );
         }
-      },
-      child: SizedBox(
-        width: double.infinity,
-        height: 250,
-        child: userData['Bia'] != null && userData['Bia'].isNotEmpty
-            ? Image.network(
-          userData['Bia'],
-          fit: BoxFit.cover,
-        )
-            : Container(
+
+        return Container(
+          width: double.infinity,
+          height: 250,
           color: Colors.grey[300],
-        ),
-      ),
+          child: Center(child: SizedBox()),
+        );
+      },
     );
   }
 
-  Widget _buildAvatar(Map<String, dynamic> userData) {
-    String? avatarUrl = userData['AVT'];
-    return Center(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          if (avatarUrl != null && avatarUrl.isNotEmpty) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SeePhotos(idFriend: widget.idFriend, avt: avatarUrl),
-              ),
-            );
-          }
-        },
-        child: CircleAvatar(
-          radius: 50,
-          backgroundColor: Color(0xFFF5F6F8),
-          child: avatarUrl != null && avatarUrl.isNotEmpty
-              ? CircleAvatar(
-            radius: 48,
-            backgroundImage: NetworkImage(avatarUrl),
-          )
-              : CircleAvatar(
-            radius: 48,
-            backgroundColor: Colors.grey[300],
-            child: Icon(Icons.person, color: Colors.white, size: 50),
-          ),
-        ),
-      ),
+  Widget _buildAvatar(Map<String, dynamic> userData, BuildContext context) {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: getAvatar(widget.idFriend),
+      builder: (context, AsyncSnapshot<Map<String, dynamic>> avatarSnapshot) {
+        bool hasMoment = false;
+        bool hasViewed = false;
+        if (avatarSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: SizedBox());
+        }
+        if (avatarSnapshot.hasData) {
+          Map<String, dynamic> avatarData = avatarSnapshot.data ?? {};
+          String avatarUrl = avatarData.isNotEmpty && avatarData['fileUrl'] != null
+              ? avatarData['fileUrl']
+              : '';
+          return StreamBuilder<List<Map<String, dynamic>>>(
+            stream: getMomentsStream(widget.idFriend),
+            builder: (context, AsyncSnapshot<List<Map<String, dynamic>>> momentsSnapshot) {
+              if (momentsSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: SizedBox());
+              }
+              if (momentsSnapshot.hasData && momentsSnapshot.data!.isNotEmpty) {
+                hasMoment = momentsSnapshot.data!.any((moment) => moment["isMoments"] == true);
+                List<String> momentIds = momentsSnapshot.data!
+                    .where((moment) => moment["isMoments"] == true)
+                    .map((moment) => moment["id"] as String)
+                    .toList();
+                String currentUserId = widget.idUser;
+                for (String momentId in momentIds) {
+                  return StreamBuilder<DatabaseEvent>(
+                    stream: getStoryViewDataById(momentId),
+                    builder: (context, AsyncSnapshot<DatabaseEvent> storyViewSnapshot) {
+                      if (storyViewSnapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: SizedBox());
+                      }
+                      if (storyViewSnapshot.hasData) {
+                        Map<String, dynamic> viewersData = {};
+                        if (storyViewSnapshot.data!.snapshot.value is Map) {
+                          viewersData = Map<String, dynamic>.from(storyViewSnapshot.data!.snapshot.value as Map);
+                        }
+                        hasViewed = viewersData.containsKey(currentUserId);
+                      }
+                      Color borderColor = hasViewed ? Colors.grey : Colors.green.shade400;
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: () {
+                                if(!hasViewed || avatarUrl.isNotEmpty){
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) => SeeMedia(
+                                      fullName: userData['fullName'],
+                                      avt: userData['AVT'],
+                                      idUser: widget.idUser,
+                                      post: avatarData,
+                                    ))
+                                  );
+                                }else{
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (context) => SeeMoments(
+                                      idFriend: widget.idFriend,
+                                      moments: momentsSnapshot.data ?? [],
+                                      userData: userData,
+                                      idUser: widget.idUser,
+                                    ))
+                                  );
+                                }
+                              },
+                              child: CircleAvatar(
+                                radius: hasMoment ? 57 : 50,
+                                backgroundColor: Color(0xFFF5F6F8),
+                                child: Container(
+                                  padding: EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: borderColor, width: 3),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 49,
+                                    backgroundColor: Color(0xFFF5F6F8),
+                                    child: CircleAvatar(
+                                      radius: 46,
+                                      backgroundImage: avatarUrl.isNotEmpty
+                                          ? NetworkImage(avatarUrl)
+                                          : null,
+                                      backgroundColor: avatarUrl.isEmpty
+                                          ? Colors.grey[300]
+                                          : Colors.transparent,
+                                      child: avatarUrl.isEmpty
+                                          ? Icon(Icons.person, color: Colors.white, size: 50)
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                }
+              }
+              return Center(child: SizedBox());
+            },
+          );
+        } else {
+          return Center(child: Icon(Icons.person, size: 50, color: Colors.grey));
+        }
+      },
     );
   }
 
@@ -493,9 +686,7 @@ class _PersonalPageState extends State<PersonalPage> {
         if (postSnapshot.hasError || postSnapshot.data == null || postSnapshot.data!["posts"] == null || postSnapshot.data!["posts"].isEmpty) {
           return SizedBox();
         }
-
         List<Map<String, dynamic>> posts = List<Map<String, dynamic>>.from(postSnapshot.data!["posts"]);
-
         return ListView.builder(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
@@ -522,7 +713,7 @@ class _PersonalPageState extends State<PersonalPage> {
           stream: fetchUserPosts(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
+              return Center(child: SizedBox());
             }
             int imageCount = snapshot.data?["imageCount"] ?? 0;
             int videoCount = snapshot.data?["videoCount"] ?? 0;
@@ -548,7 +739,6 @@ class _PersonalPageState extends State<PersonalPage> {
         height: 45,
         child: Row(
           children: [
-            // Nhắn tin (80%)
             Expanded(
               flex: 5,
               child: ElevatedButton.icon(

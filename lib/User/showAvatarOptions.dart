@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:chatonline/message/option/personalPage/SeePhotos.dart';
 import 'createMoments.dart';
 import 'seeMomemts.dart';
 import 'package:chatonline/diary/seeMedia.dart';
+import 'ChangeAvatar.dart';
 
 class ShowAvatarOptions extends StatelessWidget {
   final Map<String, dynamic> avatarData;
   final Map<String, dynamic> userData;
   final List<Map<String, dynamic>> moments;
   final String idUser;
+  final String avatarUrl;
   final bool hasMoment;
 
   const ShowAvatarOptions({
@@ -18,6 +19,7 @@ class ShowAvatarOptions extends StatelessWidget {
     required this.hasMoment,
     required this.moments,
     required this.userData,
+    required this.avatarUrl,
   });
 
   Widget _buildOption(BuildContext context, IconData icon, String text, VoidCallback onTap) {
@@ -68,14 +70,13 @@ class ShowAvatarOptions extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Điều kiện kiểm tra hasMoment trước khi hiển thị "Xem khoảnh khắc"
           if (hasMoment)
             _buildOption(context, Icons.visibility_outlined, "Xem khoảnh khắc", () {
               Navigator.push(context, MaterialPageRoute(
                   builder: (context) => SeeMoments(
                     idUser: idUser,
-                    moments: moments ?? [],
-                    userData: avatarData,
+                    moments: moments,
+                    userData: userData,
                   ))
               );
             }),
@@ -84,21 +85,23 @@ class ShowAvatarOptions extends StatelessWidget {
           _buildOption(context, Icons.add_box_outlined, "Tạo khoảnh khắc", () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => CreateMoments(idUser: idUser,)));
           }),
-          _buildOption(context, Icons.visibility, "Xem ảnh đại diện", () {
-            Navigator.push(context, MaterialPageRoute(
-                builder: (context) => SeeMedia(
-                  fullName: userData['fullName'],
-                  avt: userData['AVT'],
-                  idUser: idUser,
-                  post: avatarData,
-                ))
-            );
+          if(avatarUrl.isNotEmpty)
+            _buildOption(context, Icons.visibility, "Xem ảnh đại diện", () {
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (context) => SeeMedia(
+                    fullName: userData['fullName'],
+                    avt: userData['AVT'],
+                    idUser: idUser,
+                    post: avatarData,
+                  ))
+              );
+            }),
+
+          _buildOption(context, Icons.image, "Thay đổi ảnh đại diện", () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ChangeAvatar(idUser: idUser)));
           }),
-          _buildOption(context, Icons.camera_alt, "Chụp ảnh mới", () {}),
-          _buildOption(context, Icons.image, "Chọn ảnh trên máy", () {}),
         ],
       ),
     );
   }
 }
-

@@ -5,6 +5,8 @@ import 'postNews.dart';
 import 'postItem.dart';
 import 'showAvatarOptions.dart';
 import 'ShowCoverImageOptions.dart';
+import 'ChangeCoverImage.dart';
+import 'option.dart';
 
 class PersonalPage extends StatefulWidget {
   const PersonalPage({super.key});
@@ -148,22 +150,65 @@ class _PersonalPageState extends State<PersonalPage> {
     });
   }
 
-  Stream<Map<String, dynamic>> getLatestAvatarStream(String userId) {
+  Stream<Map<String, dynamic>> getAvatar(String userId) {
     return FirebaseDatabase.instance
         .ref()
         .child('posts')
         .orderByChild('userId')
         .equalTo(userId)
-        .limitToLast(1)
         .onValue
         .map((event) {
-      Map<dynamic, dynamic>? data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data == null || data.isEmpty) return {};
-      var latestAvatar = data.values.firstWhere(
-            (element) => element['type'] == 'avatar',
-        orElse: () => {},
-      );
-      return latestAvatar.isNotEmpty ? Map<String, dynamic>.from(latestAvatar) : {};
+      if (event.snapshot.value == null) {
+        return {};
+      }
+      Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+      var avatars = data.entries
+          .where((entry) => entry.value['type'] == 'avatar')
+          .toList();
+
+      if (avatars.isEmpty) {
+        return {};
+      }
+      avatars.sort((a, b) => b.value['timestamp'].compareTo(a.value['timestamp']));
+      var latestAvatar = avatars.first;
+      Map<String, dynamic> avatarData = Map<String, dynamic>.from(latestAvatar.value);
+      avatarData['key'] = latestAvatar.key;
+      return avatarData;
+    });
+  }
+
+  Stream<Map<String, dynamic>> getImageCover(String userId) {
+    return FirebaseDatabase.instance
+        .ref()
+        .child('posts')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) {
+        return {};
+      }
+
+      Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+
+      // Lọc danh sách các bài đăng có type = "imageCover"
+      var imageCovers = data.entries
+          .where((entry) => entry.value['type'] == 'imageCover')
+          .toList();
+
+      if (imageCovers.isEmpty) {
+        return {};
+      }
+
+      // Sắp xếp theo timestamp giảm dần (mới nhất lên đầu)
+      imageCovers.sort((a, b) => b.value['timestamp'].compareTo(a.value['timestamp']));
+
+      // Lấy ảnh mới nhất
+      var latestCover = imageCovers.first;
+
+      Map<String, dynamic> coverData = Map<String, dynamic>.from(latestCover.value);
+      coverData['key'] = latestCover.key;
+      return coverData;
     });
   }
 
@@ -189,7 +234,7 @@ class _PersonalPageState extends State<PersonalPage> {
                   clipBehavior: Clip.none,
                   children: [
                     _buildCoverImage(userData),
-                    _buildHeader(),
+                    _buildHeader(userData),
                     Positioned(
                       bottom: -25,
                       left: MediaQuery.of(context).size.width / 2 - 50,
@@ -215,38 +260,67 @@ class _PersonalPageState extends State<PersonalPage> {
   }
 
   Widget _buildCoverImage(Map<String, dynamic> userData) {
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: getImageCover(idUser!),
+      builder: (context, AsyncSnapshot<Map<String, dynamic>> imageCoverSnapshot) {
+        if (imageCoverSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: SizedBox());
+        }
+
+        String imageCoverUrl = '';
+        if (imageCoverSnapshot.hasData && imageCoverSnapshot.data!.isNotEmpty) {
+          imageCoverUrl = imageCoverSnapshot.data!['fileUrl'] ?? imageCoverUrl;
+        }
+
+        return GestureDetector(
+          onTap: () {
+            if(imageCoverUrl.isNotEmpty){
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) => ShowCoverImageOptions(
+                  idUser: idUser!,
+                  userData: userData,
+                  imageCoverData: imageCoverSnapshot.data ?? {},
+                ),
+              );
+            }else{
+              Navigator.push(context, 
+                  MaterialPageRoute(builder: (context) => ChangeCoverImage(idUser: idUser!),
+                  ));
+            }
+          },
+          child: SizedBox(
+            width: double.infinity,
+            height: 250,
+            child: imageCoverUrl.isNotEmpty
+                ? Image.network(
+              imageCoverUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[300],
+                child: Center(child: Text("Không tải được ảnh")),
+              ),
+            )
+                : Container(
+              color: Colors.grey[300],
+              child: Center(child: Text("Nhấn để chọn ảnh bìa")),
+            ),
           ),
-          builder: (context) => ShowCoverImageOptions(userData: userData),
         );
       },
-      child: SizedBox(
-        width: double.infinity,
-        height: 250,
-        child: userData['Bia'] != null && userData['Bia'].isNotEmpty
-            ? Image.network(
-          userData['Bia'],
-          fit: BoxFit.cover,
-        )
-            : Container(
-          color: Colors.grey[300],
-        ),
-      ),
     );
   }
 
   Widget _buildAvatar(Map<String, dynamic> userData, BuildContext context) {
     return StreamBuilder<Map<String, dynamic>>(
-      stream: getLatestAvatarStream(idUser!),
+      stream: getAvatar(idUser!),
       builder: (context, AsyncSnapshot<Map<String, dynamic>> avatarSnapshot) {
         bool hasMoment = false;
         if (avatarSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return Center(child: SizedBox());
         }
         if (avatarSnapshot.hasData) {
           Map<String, dynamic> avatarData = avatarSnapshot.data ?? {};
@@ -256,11 +330,9 @@ class _PersonalPageState extends State<PersonalPage> {
           return StreamBuilder<List<Map<String, dynamic>>>(
             stream: getMomentsStream(idUser!),
             builder: (context, AsyncSnapshot<List<Map<String, dynamic>>> momentsSnapshot) {
-              print("aaaaaaaaaaaaaaa ${avatarData['id']}");
               if (momentsSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return Center(child: SizedBox());
               }
-
               if (momentsSnapshot.hasData && momentsSnapshot.data!.isNotEmpty) {
                 hasMoment = momentsSnapshot.data!.any((moment) => moment["isMoments"] == true);
               }
@@ -282,6 +354,7 @@ class _PersonalPageState extends State<PersonalPage> {
                             idUser: idUser!,
                             hasMoment: hasMoment,
                             moments: momentsSnapshot.data ?? [],
+                            avatarUrl: avatarUrl,
                           ),
                         );
                       },
@@ -450,7 +523,7 @@ class _PersonalPageState extends State<PersonalPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Map<String, dynamic> userData) {
     return Positioned(
       top: 0,
       left: 0,
@@ -471,7 +544,12 @@ class _PersonalPageState extends State<PersonalPage> {
           ),
           IconButton(
             icon: Icon(Icons.more_horiz_outlined, color: Colors.white),
-            onPressed: () => print("option"),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Option(idUser: idUser!, userData: userData,)),
+              );
+            },
           ),
         ],
       ),

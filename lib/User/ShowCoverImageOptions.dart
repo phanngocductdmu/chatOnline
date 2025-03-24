@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'ChangeCoverImage.dart';
+import '../diary/seeMedia.dart';
 
 class ShowCoverImageOptions extends StatelessWidget {
   final Map<String, dynamic> userData;
+  final Map<String, dynamic> imageCoverData;
+  final String idUser;
 
-  const ShowCoverImageOptions({Key? key, required this.userData}) : super(key: key);
+  const ShowCoverImageOptions({
+    super.key,
+    required this.userData,
+    required this.imageCoverData,
+    required this.idUser
+  });
 
   Widget _buildOption(BuildContext context, IconData icon, String text, VoidCallback onTap) {
     return Column(
@@ -53,9 +62,23 @@ class ShowCoverImageOptions extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _buildOption(context, Icons.visibility, "Xem ảnh bìa", () {}),
-          _buildOption(context, Icons.camera_alt, "Chụp ảnh mới", () {}),
-          _buildOption(context, Icons.image, "Chọn ảnh trên máy", () {}),
+          _buildOption(context, Icons.visibility, "Xem ảnh bìa", () {
+            Navigator.push(context, MaterialPageRoute(
+                builder: (context) => SeeMedia(
+                  fullName: userData['fullName'],
+                  avt: userData['AVT'],
+                  idUser: idUser,
+                  post: imageCoverData,
+                ))
+            );
+          }),
+          _buildOption(context, Icons.image, "Thay đổi ảnh bìa", () {
+            Navigator.push(context, MaterialPageRoute(
+                builder: (context) => ChangeCoverImage(
+                    idUser: idUser
+                ))
+            );
+          }),
         ],
       ),
     );

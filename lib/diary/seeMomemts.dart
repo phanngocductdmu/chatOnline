@@ -385,7 +385,6 @@ class SeeMomentsState extends State<SeeMoments> {
       if (!viewers.containsKey(userId)) {
         await storyRef.child(userId).set(true);
       } else {
-        // print("User has already viewed");
       }
     } else {
       await storyRef.child(userId).set(true);

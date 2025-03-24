@@ -434,11 +434,14 @@ class PostItemState extends State<PostItem> {
                               fullName,
                               style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
                             ),
-                            if (type == 'avatar') // Kiểm tra nếu type là 'avatar'
-                              Text(
-                                " đã thay đổi ảnh đại diện",
-                                style: TextStyle(fontSize: 14, color: Colors.black),
-                              ),
+                            Text(
+                              type == 'avatar'
+                                  ? " đã thay đổi ảnh đại diện"
+                                  : type == 'imageCover'
+                                  ? " đã thay đổi ảnh bìa"
+                                  : "",
+                              style: TextStyle(fontSize: 14, color: Colors.black),
+                            )
                           ],
                         ),
                         Text(
