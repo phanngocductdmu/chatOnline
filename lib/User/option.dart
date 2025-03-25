@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'information.dart';
 import 'ChangeAvatar.dart';
 import 'ChangeCoverImage.dart';
+
 class Option extends StatefulWidget {
   final String idUser;
   final Map<String, dynamic> userData;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'editInformation.dart';
 
 class Information extends StatefulWidget {
   final String idUser;
@@ -68,15 +69,6 @@ class _InformationState extends State<Information> {
     });
   }
 
-  void _openEditNameBottomSheet() {
-    // showModalBottomSheet(
-    //   context: context,
-    //   builder: (context) {
-    //     return ChangeNickname(nickName: widget.nickName, idChatRoom: widget.idChatRoom, idFriend: widget.idFriend);
-    //   },
-    // );
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +108,6 @@ class _InformationState extends State<Information> {
                   ),
                 ),
               ),
-
               // AppBar
               Positioned(
                 top: 0,
@@ -180,22 +171,6 @@ class _InformationState extends State<Information> {
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            GestureDetector(
-                              onTap: _openEditNameBottomSheet,
-                              child: Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.mode_edit_outline_outlined,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            )
                           ],
                         ),
                       ],
@@ -224,9 +199,10 @@ class _InformationState extends State<Information> {
                           Text(
                             "Thông tin cá nhân",
                             style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(Icons.person, "Giới tính",
@@ -237,6 +213,29 @@ class _InformationState extends State<Information> {
                           _divider(),
                           _buildInfoRow(Icons.email, "Email",
                               widget.userData['email'] ?? "Người dùng chưa cập nhật"),
+                          const SizedBox(height: 20),
+
+                          SizedBox(
+                            width: double.infinity, // Full chiều ngang
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(context,
+                                    MaterialPageRoute(builder: (context) => EditInformation(idUser: widget.idUser, userData: widget.userData),));
+                              },
+                              icon: Icon(Icons.edit, color: Colors.black),
+                              label: Text(
+                                "Chỉnh sửa",
+                                style: TextStyle(fontSize: 16, color: Colors.black), // Màu chữ đen
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFE0DDDD), // Màu nền xám
+                                padding: EdgeInsets.symmetric(vertical: 0), // Tăng chiều cao nút
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
