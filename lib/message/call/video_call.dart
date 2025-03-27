@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
@@ -9,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 const String appId = "bad34fda816e4c31a4d63a6761c653af";
-const String serverUrl = "http://192.168.1.11:5000/rtc-token";
+const String serverUrl = "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
 
 class VideoCall extends StatefulWidget {
   final String chatRoomId, idFriend, avt, fullName, userId;
@@ -23,11 +24,16 @@ class VideoCall extends StatefulWidget {
 class _VideoCallState extends State<VideoCall> {
   bool isCameraOn = true;
   bool isMicOn = true;
+  bool isSpeakerOn = true;
   RtcEngine? _engine;
   int? _remoteUid;
   String? agoraToken;
   bool isLoading = true;
   bool hasPopped = false;
+  Timer? _timer;
+  Duration callDuration = Duration();
+  DateTime? connectedTime;
+  int timeout = 15;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   @override
@@ -43,7 +49,6 @@ class _VideoCallState extends State<VideoCall> {
   void _checkCallStatus() {
     try {
       DatabaseReference callsRef = FirebaseDatabase.instance.ref("calls");
-      // Lắng nghe sự thay đổi trong dữ liệu của cuộc gọi
       callsRef
           .orderByChild('channelName')
           .equalTo(widget.chatRoomId)
@@ -52,10 +57,9 @@ class _VideoCallState extends State<VideoCall> {
         if (event.snapshot.value != null) {
           Map<dynamic, dynamic> calls = event.snapshot.value as Map;
           calls.forEach((key, value) async {
-            // Kiểm tra trạng thái cuộc gọi
             String status = value['status']
                 .toString()
-                .toLowerCase(); // Chuyển về chữ thường
+                .toLowerCase();
             if (status == 'refuse' && !hasPopped) {
               if (mounted) {
                 Navigator.pop(context);
@@ -102,33 +106,56 @@ class _VideoCallState extends State<VideoCall> {
     return null;
   }
 
-  void _sendMessage(String statuss) async {
+  void _sendMessage(String statusS, String idUser) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final receiverId = await _getReceiverId();
     if (receiverId == null) return;
-
     final snapshot = await _database.child('users/$receiverId/status/online').get();
     final isReceiverOnline = snapshot.exists && snapshot.value == true;
     final newStatus = isReceiverOnline ? 'Đã nhận' : 'Đã gửi';
+    final messageData = {
+      'text': 'Cuộc gọi đến',
+      'senderId': idUser,
+      'timestamp': timestamp,
+      'typeChat': "videoCall",
+      'status': newStatus,
+      'statuss': statusS,
+      'totalTime': _formatDurationFirebase(callDuration),
+    };
+    await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+    await _database.child('chatRooms/${widget.chatRoomId}').update({
+      'lastMessage': 'Cuộc gọi đến',
+      'lastMessageTime': timestamp,
+      'status': newStatus,
+      'senderId': widget.userId,
+    });
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
 
-    // final messageData = {
-    //   'text': 'Cuộc gọi đến',
-    //   'senderId': widget.userId,
-    //   'timestamp': timestamp,
-    //   'typeChat': "call",
-    //   'status': newStatus,
-    //   'statuss': statuss,
-    // };
-    //
-    // await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
-    // await _database.child('chatRooms/${widget.chatRoomId}').update({
-    //   'lastMessage': 'Cuộc gọi đến',
-    //   'lastMessageTime': timestamp,
-    //   'status': newStatus,
-    //   'senderId': widget.userId,
-    // });
-    //
-    // setState(() => isLoading = false);
+  String _formatDurationFirebase(Duration duration) {
+    int minutes = duration.inMinutes;
+    int seconds = duration.inSeconds.remainder(60);
+    return "$minutes phút $seconds giây";
+  }
+
+  void onUserConnected() {
+    setState(() {
+      connectedTime = DateTime.now();
+      _startTimer();
+    });
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (connectedTime != null) {
+        setState(() {
+          callDuration = DateTime.now().difference(connectedTime!);
+        });
+      }
+    });
   }
 
   Future<String> copyAssetToTemp(String assetPath) async {
@@ -143,80 +170,72 @@ class _VideoCallState extends State<VideoCall> {
     setState(() => isLoading = true);
     String channelName = widget.chatRoomId;
     int uid = widget.userId.hashCode;
-    String userId = widget.userId;
 
     try {
-      Map<String, String>? myInfo = await getMyInfo(userId);
-      if (myInfo == null) throw Exception("Không tìm thấy thông tin người dùng.");
-
-      String myFullName = myInfo['fullName']!;
-      String myavt = myInfo['avt']!;
+      // Lấy token từ server
       agoraToken = await fetchAgoraToken(channelName, uid);
       if (agoraToken == null) throw Exception("Không thể lấy token từ server.");
 
+      // Khởi tạo Agora
       await _initializeAgora(channelName, uid, agoraToken!);
-
       await Future.delayed(const Duration(seconds: 1));
       await _engine!.enableVideo();
-
       await _engine!.startPreview();
 
-      DatabaseReference callRef = FirebaseDatabase.instance.ref("calls");
-      DatabaseEvent event = await callRef.orderByChild('channelName').equalTo(channelName).once();
-      DataSnapshot snapshot = event.snapshot;
-
-      if (snapshot.exists) {
-        snapshot.children.forEach((childSnapshot) async {
-          var callKey = childSnapshot.key;
-          var callData = childSnapshot.value as Map<dynamic, dynamic>;
-          String currentStatus = callData['status'];
-          // print('Current status: $currentStatus');
-
-          if (currentStatus == 'ended' || currentStatus == 'refuse' || currentStatus == 'missed') {
-            await FirebaseDatabase.instance.ref("calls/$callKey").update({
-              'status': 'calling',
-              'timestamp': ServerValue.timestamp,
-              'idFriend': widget.idFriend,
-              'myavt': myavt,
-              'myID': widget.userId,
-              'callerAvatar': widget.avt,
-              'myName': myFullName,
-              'nameFriend': widget.fullName,
-              'typeCall': 'VideoCall',
-            });
-            // print("📢 Cuộc gọi đã được cập nhật thành 'Đang gọi...'.");
-          } else {
-            // print("📢 Trạng thái cuộc gọi không thay đổi.");
-          }
-        });
-      } else {
-        await FirebaseDatabase.instance.ref("calls").push().set({
-          'status': 'calling',
-          'channelName': channelName,
-          'idFriend': widget.idFriend,
-          'nameFriend': widget.fullName,
-          'callerAvatar': widget.avt,
-          'myName': myFullName,
-          'myavt': myavt,
-          'myID': widget.userId,
-          'timestamp': ServerValue.timestamp,
-          'typeCall': 'Call',
-        });
-        // print("📢 Cuộc gọi đã được ghi vào Firebase");
-      }
-
-      // print("✅ Call initialized successfully");
+      print("✅ Cuộc gọi đã khởi tạo thành công");
     } catch (e) {
-      // // print("🔴 Error initializing call: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(content: Text("Không thể kết nối. Vui lòng thử lại sau!"))
-      // );
-      // if (mounted) Navigator.pop(context);
+      print("🔴 Lỗi khi khởi tạo cuộc gọi: $e");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
+  Future<void> _initializeAgora(String channelName, int uid, String token) async {
+    _engine = createAgoraRtcEngine();
+    await _engine!.initialize(const RtcEngineContext(appId: appId));
+    String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
+    await _engine!.startAudioMixing(
+      filePath: tempFilePath,
+      loopback: true,
+      cycle: 1,
+    );
+    await _engine!.enableAudio();
+    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
+    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
+
+    _engine!.registerEventHandler(RtcEngineEventHandler(
+
+      onUserJoined: (connection, remoteUid, elapsed) async {
+        if (!mounted) return;
+        setState(() {
+          onUserConnected();
+          _remoteUid = remoteUid;
+        });
+        await _engine!.stopAudioMixing();
+        await _engine!.muteLocalAudioStream(false);
+      },
+
+      onUserOffline: (connection, remoteUid, reason) {
+        setState(() => _remoteUid = null);
+        Navigator.pop(context);
+      },
+
+      onAudioMixingStateChanged: (state, reason) {
+      },
+
+      onAudioMixingFinished: () {
+      },
+    ));
+    await _engine!.joinChannel(
+        token: token,
+        channelId: channelName,
+        uid: uid,
+        options: const ChannelMediaOptions()
+    );
+    _waitForRemoteUser();
+  }
 
   Future<String?> fetchAgoraToken(String channelName, int uid) async {
     // print("🔵 Fetching Agora token");
@@ -236,73 +255,15 @@ class _VideoCallState extends State<VideoCall> {
     return null;
   }
 
-  Future<void> _initializeAgora(String channelName, int uid, String token) async {
-    _engine = createAgoraRtcEngine();
-    await _engine!.initialize(const RtcEngineContext(appId: appId));
-    String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
-
-    await _engine!.startAudioMixing(
-      filePath: tempFilePath,
-      loopback: true,
-      cycle: 1,
-    );
-
-    await _engine!.enableAudio();
-
-    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
-
-    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
-
-    _engine!.registerEventHandler(RtcEngineEventHandler(
-
-      // onError: (ErrorCodeType err, String msg) => print("🔴 Agora Error: $err - $msg"),
-      onUserJoined: (connection, remoteUid, elapsed) async {
-        setState(() => _remoteUid = remoteUid);
-        // print("📞 Người nhận đã vào phòng, dừng nhạc chuông.");
-
-        await _engine!.stopAudioMixing();
-
-        await _engine!.muteLocalAudioStream(false);
-      },
-
-      onUserOffline: (connection, remoteUid, reason) {
-        // print("🔴 Remote user offline: $remoteUid");
-
-        setState(() => _remoteUid = null);
-
-        endCall();
-      },
-
-      onAudioMixingStateChanged: (state, reason) {
-        // print("🎵 Trạng thái Audio Mixing: $state, Lý do: $reason");
-      },
-
-      onAudioMixingFinished: () {
-        // print("🎵 Audio Mixing đã phát xong!");
-      },
-    ));
-
-    await _engine!.joinChannel(
-        token: token,
-        channelId: channelName,
-        uid: uid,
-        options: const ChannelMediaOptions()
-    );
-
-    _waitForRemoteUser();
-  }
-
   Future<void> _waitForRemoteUser() async {
-    int timeout = 10;
     while (timeout > 0) {
       await Future.delayed(const Duration(seconds: 1));
       if (_remoteUid != null) {
-        // print("✅ Người nhận đã tham gia, không kết thúc cuộc gọi.");
         return;
       }
-
       timeout--;
     }
+    await _updateCallStatusToMissed();
     String tempPath = await copyAssetToTemp("assets/audio/cuocgoiketthuc.mp3");
     if (await File(tempPath).exists()) {
       // print("🔊 Phát âm thanh kết thúc cuộc gọi: $tempPath");
@@ -313,7 +274,27 @@ class _VideoCallState extends State<VideoCall> {
       );
       await Future.delayed(const Duration(seconds: 3));
     }
-    endCall();
+    Navigator.pop(context);
+  }
+
+  Future<void> _updateCallStatusToMissed() async {
+    String channelName = widget.chatRoomId;
+    DatabaseReference ref = FirebaseDatabase.instance.ref("calls");
+
+    try {
+      DatabaseEvent event = await ref.orderByChild("channelName").equalTo(channelName).once();
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> calls = event.snapshot.value as Map<dynamic, dynamic>;
+        calls.forEach((key, value) async {
+          await ref.child(key).update({"status": "missed"});
+        });
+        print("✅ Cập nhật trạng thái missed thành công.");
+      } else {
+        print("⚠️ Không tìm thấy cuộc gọi với channelName: $channelName");
+      }
+    } catch (e) {
+      print("🔴 Lỗi cập nhật trạng thái cuộc gọi: $e");
+    }
   }
 
   void endCall() async {
@@ -322,22 +303,32 @@ class _VideoCallState extends State<VideoCall> {
       DatabaseEvent event = await callsRef.orderByChild('channelName').equalTo(widget.chatRoomId).once();
       if (event.snapshot.exists) {
         for (var child in event.snapshot.children) {
-          String callKey = child.key!;
-          if (_remoteUid == null) {
-            await FirebaseDatabase.instance.ref("calls/$callKey").update({'status': 'missed'});
-            _sendMessage('missed');
-            // print("📢 Cuộc gọi bị bỏ lỡ (missed)");
-          } else {
-            await FirebaseDatabase.instance.ref("calls/$callKey").update({'status': 'ended'});
-            _sendMessage('ended');
+          Map<dynamic, dynamic>? callData = child.value as Map<dynamic, dynamic>?;
+          if (callData != null) {
+            String myID = callData['myID'] ?? '';
+            if (_remoteUid == null) {
+              await FirebaseDatabase.instance.ref("calls/${child.key}").update({
+                'status': 'missed',
+              });
+              _sendMessage('missed', myID);
+              print("📢 Cuộc gọi bị bỏ lỡ (missed)");
+            } else {
+              await FirebaseDatabase.instance.ref("calls/${child.key}").update({
+                'status': 'ended',
+              });
+              _sendMessage('ended', myID);
+              print("📢 Cuộc gọi đã kết thúc");
+            }
           }
         }
       }
-      await _engine?.stopAudioMixing();
-      await _engine?.muteLocalAudioStream(true);
-      await _engine?.muteAllRemoteAudioStreams(true);
-      await _engine?.leaveChannel();
-      await _engine?.release();
+      if (_engine != null) {
+        await _engine!.stopAudioMixing();
+        await _engine!.muteLocalAudioStream(true);
+        await _engine!.muteAllRemoteAudioStreams(true);
+        await _engine!.leaveChannel();
+        await _engine!.release();
+      }
       setState(() {
         _remoteUid = null;
       });
@@ -346,6 +337,61 @@ class _VideoCallState extends State<VideoCall> {
       }
     } catch (e) {
       // print("🔴 Lỗi khi kết thúc cuộc gọi: $e");
+    }
+  }
+
+  void toggleMic() async {
+    try {
+      bool newMicState = !isMicOn;
+      await _engine!.muteLocalAudioStream(!newMicState);
+      setState(() {
+        isMicOn = newMicState;
+      });
+      print("🎙 Mic ${isMicOn ? "bật" : "tắt"}");
+    } catch (e) {
+      print("❌ Lỗi khi bật/tắt mic: $e");
+    }
+  }
+
+  void toggleSpeaker() async {
+    try {
+      if (_engine == null) {
+        print("⚠️ Lỗi: Agora chưa được khởi tạo!");
+        return;
+      }
+      bool newSpeakerState = !isSpeakerOn;
+      await _engine!.setEnableSpeakerphone(newSpeakerState);
+      await _engine!.setDefaultAudioRouteToSpeakerphone(newSpeakerState);
+
+      if (!newSpeakerState) {
+        await _engine!.adjustPlaybackSignalVolume(0);  // Tắt hẳn âm thanh
+      } else {
+        await _engine!.adjustPlaybackSignalVolume(100); // Bật lại âm thanh
+      }
+      setState(() {
+        isSpeakerOn = newSpeakerState;
+        print("🔍 Trạng thái loa: $isSpeakerOn");
+      });
+      print("🔊 Loa ngoài ${isSpeakerOn ? "BẬT" : "TẮT"}");
+    } catch (e) {
+      print("❌ Lỗi khi bật/tắt loa ngoài: $e");
+    }
+  }
+
+  void toggleCamera() async {
+    try {
+      if (_engine == null) {
+        print("⚠️ Lỗi: Agora chưa được khởi tạo!");
+        return;
+      }
+      bool newCameraState = !isCameraOn;
+      await _engine!.muteLocalVideoStream(!newCameraState);
+      setState(() {
+        isCameraOn = newCameraState;
+      });
+      print("📷 Camera ${isCameraOn ? "BẬT" : "TẮT"}");
+    } catch (e) {
+      print("❌ Lỗi khi bật/tắt camera: $e");
     }
   }
 
@@ -378,17 +424,20 @@ class _VideoCallState extends State<VideoCall> {
   }
 
   Widget _buildMyVideoSmall() {
-    return Container(
-      width: 100,
-      height: 150,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: AgoraVideoView(
-        controller: VideoViewController(
-          rtcEngine: _engine!,
-          canvas: const VideoCanvas(uid: 0),
+    return Visibility(
+      visible: isCameraOn,
+      child: Container(
+        width: 100,
+        height: 150,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: AgoraVideoView(
+          controller: VideoViewController(
+            rtcEngine: _engine!,
+            canvas: const VideoCanvas(uid: 0),
+          ),
         ),
       ),
     );
@@ -401,7 +450,13 @@ class _VideoCallState extends State<VideoCall> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: NetworkImage(widget.avt),
+            backgroundColor: Colors.grey[300],
+            backgroundImage: widget.avt != null && widget.avt.isNotEmpty
+                ? NetworkImage(widget.avt)
+                : null,
+            child: widget.avt == null || widget.avt.isEmpty
+                ? Icon(Icons.person, size: 50, color: Colors.grey[700])
+                : null,
           ),
           const SizedBox(height: 10),
           Text(
@@ -439,9 +494,13 @@ class _VideoCallState extends State<VideoCall> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildControlButton(isCameraOn ? Icons.videocam : Icons.videocam_off, () => setState(() => isCameraOn = !isCameraOn), Colors.green),
+            _buildControlButton(
+              isCameraOn ? Icons.videocam : Icons.videocam_off, toggleCamera,
+              isCameraOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+            ),
+            _buildControlButton(isMicOn ? Icons.mic : Icons.mic_off, toggleMic, isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,),
+            _buildControlButton(isSpeakerOn ? Icons.volume_up : Icons.volume_off, toggleSpeaker, isSpeakerOn ? Colors.green : Colors.grey[800] ?? Colors.grey,),
             _buildControlButton(Icons.call_end, endCall, Colors.red),
-            _buildControlButton(isMicOn ? Icons.mic : Icons.mic_off, () => setState(() => isMicOn = !isMicOn), Colors.green),
           ],
         ),
       ),
@@ -456,5 +515,14 @@ class _VideoCallState extends State<VideoCall> {
       constraints: const BoxConstraints.tightFor(width: 56, height: 56),
       child: Icon(icon, color: Colors.white, size: 28),
     );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _engine?.leaveChannel();
+    _engine?.release();
+    _engine = null;
+    super.dispose();
   }
 }

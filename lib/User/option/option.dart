@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'information.dart';
+import '../information.dart';
 import 'ChangeAvatar.dart';
 import 'ChangeCoverImage.dart';
+import 'bio.dart';
 
 class Option extends StatefulWidget {
   final String idUser;
@@ -56,6 +57,7 @@ class _OptionState extends State<Option> {
               color: Colors.white,
               child: Column(
                 children: [
+                  //thong tin
                   InkWell(
                     onTap: () {
                       Navigator.push(context,
@@ -78,7 +80,7 @@ class _OptionState extends State<Option> {
                     height: 1,
                     color: Color(0xFFF3F4F6),
                   ),
-
+                  //doi anh dai dien
                   InkWell(
                     onTap: () {
                       Navigator.push(context,
@@ -103,7 +105,7 @@ class _OptionState extends State<Option> {
                     height: 1,
                     color: Color(0xFFF3F4F6), // Màu xám nhạt theo mã hex
                   ),
-
+                  //doi anh bia
                   InkWell(
                     onTap: () {
                       Navigator.push(context,
@@ -131,7 +133,8 @@ class _OptionState extends State<Option> {
 
                   InkWell(
                     onTap: () {
-
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => Bio(idUser: widget.idUser, userData: widget.userData)));
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(10),

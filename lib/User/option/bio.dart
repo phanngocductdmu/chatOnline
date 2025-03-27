@@ -1,23 +1,21 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-class GroupDescription extends StatefulWidget {
-  final String groupID;
-  final String groupAvatar;
-  final String groupName;
+class Bio extends StatefulWidget {
+  final String idUser;
+  final Map<String, dynamic> userData;
 
-  const GroupDescription({
+  const Bio({
     super.key,
-    required this.groupAvatar,
-    required this.groupName,
-    required this.groupID,
+    required this.idUser,
+    required this.userData,
   });
 
   @override
-  State<GroupDescription> createState() => _GroupDescriptionState();
+  State<Bio> createState() => _BioState();
 }
 
-class _GroupDescriptionState extends State<GroupDescription> {
+class _BioState extends State<Bio> {
   final TextEditingController descriptionController = TextEditingController();
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
@@ -28,8 +26,7 @@ class _GroupDescriptionState extends State<GroupDescription> {
   }
 
   void _fetchDescription() async {
-    DatabaseReference ref = _database.child("chatRooms/${widget.groupID}/description");
-
+    DatabaseReference ref = _database.child("users/${widget.idUser}/bio");
     ref.once().then((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         setState(() {
@@ -49,11 +46,12 @@ class _GroupDescriptionState extends State<GroupDescription> {
       return;
     }
 
-    await _database.child("chatRooms/${widget.groupID}/description").set(newDescription);
+    await _database.child("users/${widget.idUser}/bio").set(newDescription);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Cập nhật mô tả nhóm thành công!")),
+      SnackBar(content: Text("Cập nhật thành công!")),
     );
+    Navigator.pop(context);
   }
 
   @override
@@ -112,11 +110,11 @@ class _GroupDescriptionState extends State<GroupDescription> {
             SizedBox(height: 20),
             CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(widget.groupAvatar),
+              backgroundImage: NetworkImage(widget.userData['AVT']),
             ),
             SizedBox(height: 10),
             Text(
-              widget.groupName,
+              widget.userData['fullName'],
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -129,7 +127,7 @@ class _GroupDescriptionState extends State<GroupDescription> {
               child: TextField(
                 controller: descriptionController,
                 decoration: InputDecoration(
-                  labelText: "Nhập mô tả nhóm...",
+                  labelText: "Nhập lời giới thiệu",
                   labelStyle: TextStyle(color: Colors.grey),
                   border: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.black),

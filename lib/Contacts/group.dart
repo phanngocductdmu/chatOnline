@@ -57,6 +57,7 @@ class GroupState extends State<Group> {
                 'numMembers': members.length,
                 'typeRoom': value['typeRoom'] ?? false,
                 'description': value['description'] ?? '',
+                'totalTime': value['totalTime'],
               });
             }
           }
@@ -130,7 +131,8 @@ class GroupState extends State<Group> {
                           numMembers: group['numMembers'],
                           member: List<String>.from(group['members']),
                           description: group['description'],
-                          isFriend: true
+                          isFriend: true,
+                        totalTime: group['totalTime'],
                       ))
                   );
                 },

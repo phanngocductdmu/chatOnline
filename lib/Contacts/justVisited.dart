@@ -89,6 +89,7 @@ class JustVisitedState extends State<JustVisited> {
                       'numMembers': members.length,
                       'typeRoom': value['typeRoom'] ?? false,
                       'description': value['description'] ?? '',
+                      'totalTime': value['totalTime'] ?? '',
                     });
                   }
                 }
@@ -143,6 +144,7 @@ class JustVisitedState extends State<JustVisited> {
                         member: List<String>.from(friend['members']),
                         description: friend['description'],
                         isFriend: true,
+                        totalTime: friend['totalTime'],
                       ),
                     ),
                   );

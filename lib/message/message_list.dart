@@ -50,7 +50,6 @@ class _MessageListState extends State<MessageList> {
   final Map<String, GlobalKey> _messageKeys = {};
   List<Map<String, dynamic>> filteredMessages = [];
   late bool isSearch;
-
   String searchQuery = "";
   List<int> searchResults = [];
   int currentSearchIndex = 0;
@@ -182,6 +181,7 @@ class _MessageListState extends State<MessageList> {
             'isDelete': value['isDelete'] ?? false,
             'replyTo': value['replyTo'] ?? '',
             'replyText': value['replyText'] ?? '',
+            'totalTime': value['totalTime'] ,
           });
         }
 
@@ -1045,38 +1045,64 @@ class _MessageListState extends State<MessageList> {
         );
 
       case 'call':
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              message['statuss'] == 'missed' ? Icons.call_end : Icons.call,
-              color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
+            Row(
+              children: [
+                Icon(
+                  message['statuss'] == 'missed' ? Icons.call_end : Icons.call,
+                  color: message['statuss'] == 'missed' ? Colors.red : Colors.green, size: 18,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  "Cuộc gọi ${message['statuss'] == 'missed' ? 'bị nhỡ' : 'thoại'}",
+                  style: TextStyle(
+                    color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 5),
-            Text(
-              "Cuộc gọi ${message['statuss'] == 'missed' ? 'bị nhỡ' : 'thoại'}",
-              style: TextStyle(
-                color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
-                fontWeight: FontWeight.bold,
+            if (message['totalTime'] != null && message['statuss'] != 'missed')
+              Padding(
+                padding: const EdgeInsets.only(left: 23),
+                child: Text(
+                  message['totalTime'],
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
-            ),
           ],
         );
 
       case 'videoCall':
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              message['statuss'] == 'missed' ? Icons.videocam_off : Icons.videocam,
-              color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
+            Row(
+              children: [
+                Icon(
+                  message['statuss'] == 'missed' ? Icons.videocam_off : Icons.videocam,
+                  color: message['statuss'] == 'missed' ? Colors.red : Colors.green, size: 18,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  "Cuộc gọi ${message['statuss'] == 'missed' ? 'bị nhỡ' : 'video'}",
+                  style: TextStyle(
+                    color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 5),
-            Text(
-              "Cuộc gọi ${message['statuss'] == 'missed' ? 'bị nhỡ' : 'video'}",
-              style: TextStyle(
-                color: message['statuss'] == 'missed' ? Colors.red : Colors.green,
-                fontWeight: FontWeight.bold,
+            if (message['totalTime'] != null && message['statuss'] != 'missed')
+              Padding(
+                padding: const EdgeInsets.only(left: 23),
+                child: Text(
+                  message['totalTime'],
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
-            ),
           ],
         );
 

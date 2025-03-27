@@ -5,8 +5,8 @@ import 'postNews.dart';
 import 'postItem.dart';
 import 'showAvatarOptions.dart';
 import 'ShowCoverImageOptions.dart';
-import 'ChangeCoverImage.dart';
-import 'option.dart';
+import 'option/ChangeCoverImage.dart';
+import 'option/option.dart';
 
 class PersonalPage extends StatefulWidget {
   const PersonalPage({super.key});

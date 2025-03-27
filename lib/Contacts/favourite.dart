@@ -191,6 +191,7 @@ class FavouriteState extends State<Favourite> {
                           member: [],
                           description: '',
                           isFriend: true,
+                          totalTime: friend['totalTime'],
                         ),
                       ),
                     );

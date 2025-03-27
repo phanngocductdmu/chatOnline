@@ -46,15 +46,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       userId = prefs.getString('userId');
 
       if (userId == null || userId!.isEmpty) {
-        // print("🔴 Không tìm thấy userId.");
         return;
       }
-
-      // Tham chiếu đến Firebase Database
       userStatusRef = FirebaseDatabase.instance.ref('users/$userId/status');
       callRef = FirebaseDatabase.instance.ref("calls");
       _updateUserStatus(true);
-      // Lắng nghe các cuộc gọi đến
       _listenForIncomingCalls();
     } catch (e) {
       // print("🔴 Lỗi khi khởi tạo user: $e");

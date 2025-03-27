@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'ChangeCoverImage.dart';
+import 'option/ChangeCoverImage.dart';
 import '../diary/seeMedia.dart';
 
 class ShowCoverImageOptions extends StatelessWidget {

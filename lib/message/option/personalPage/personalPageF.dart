@@ -758,6 +758,7 @@ class _PersonalPageState extends State<PersonalPage> {
                         member: [],
                         description: "",
                         isFriend: widget.isFriend,
+                        totalTime: '',
                       ),
                     )
                   );

@@ -12,16 +12,15 @@ import 'dart:io';
 import 'package:image_cropper/image_cropper.dart' as cropper;
 import 'dart:ui' as ui;
 
-
-class ChangeCoverImage extends StatefulWidget {
+class ChangeAvatar extends StatefulWidget {
   final String idUser;
 
-  const ChangeCoverImage({super.key, required this.idUser});
+  const ChangeAvatar({super.key, required this.idUser});
   @override
-  ChangeCoverImageState createState() => ChangeCoverImageState();
+  ChangeAvatarState createState() => ChangeAvatarState();
 }
 
-class ChangeCoverImageState extends State<ChangeCoverImage> {
+class ChangeAvatarState extends State<ChangeAvatar> {
   final ImagePicker _picker = ImagePicker();
   List<AssetEntity> _galleryImages = [];
   File? _selectedImage;
@@ -78,7 +77,7 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
     try {
       final croppedFile = await cropper.ImageCropper().cropImage(
         sourcePath: _selectedImage!.path,
-        aspectRatio: const cropper.CropAspectRatio(ratioX: 16, ratioY: 9),
+        aspectRatio: const cropper.CropAspectRatio(ratioX: 1, ratioY: 1),
         compressQuality: 100,
         uiSettings: [
           cropper.AndroidUiSettings(
@@ -203,33 +202,6 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
     });
   }
 
-  Future<Uint8List> _captureWidgetImage() async {
-    try {
-      setState(() {
-        _hideUI = true;
-      });
-
-      await Future.delayed(Duration(milliseconds: 200));
-
-      RenderRepaintBoundary boundary =
-      _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage();
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-      setState(() {
-        _hideUI = false;
-      });
-
-      return byteData!.buffer.asUint8List();
-    } catch (e) {
-      print('Lỗi khi chụp ảnh: $e');
-      setState(() {
-        _hideUI = false;
-      });
-      rethrow;
-    }
-  }
-
   Future<void> _uploadImage() async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -239,16 +211,17 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
           duration: Duration(seconds: 2),
         ),
       );
-      Uint8List imageBytes = await _captureWidgetImage();
+
       String fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
-      Reference storageRef = FirebaseStorage.instance.ref().child('posts/$fileName');
+      Uint8List imageBytes = await File(_selectedImage!.path).readAsBytes();
+      Reference storageRef = FirebaseStorage.instance.ref().child('avatars/${widget.idUser}/$fileName');
       UploadTask uploadTask = storageRef.putData(imageBytes);
       TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
 
+      // 2. Đăng bài trong `posts`
       DatabaseReference dbRef = FirebaseDatabase.instance.ref().child('posts');
       DatabaseReference newMomentRef = dbRef.push();
-
       int timestamp = DateTime.now().millisecondsSinceEpoch;
 
       await newMomentRef.set({
@@ -256,12 +229,16 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
         "fileUrl": downloadUrl,
         "timestamp": timestamp,
         "privacy": privacy,
-        "type": "imageCover"
+        "type": "avatar"
       });
+
+      // 3. Cập nhật avatar trong `users`
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child('users/${widget.idUser}');
+      await userRef.update({"AVT": downloadUrl});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('📷 Đăng bài thành công!'),
+          content: Text('📷 Cập nhật ảnh đại diện thành công!'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
         ),
@@ -272,7 +249,7 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
       print('Lỗi khi upload ảnh: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Đăng bài thất bại!'),
+          content: Text('❌ Đăng bài hoặc cập nhật ảnh đại diện thất bại!'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -299,7 +276,7 @@ class ChangeCoverImageState extends State<ChangeCoverImage> {
       child: Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
-          title: Text("Thay đổi ảnh bìa", style: TextStyle(color: Colors.white)),
+          title: Text("Thay đổi ảnh đại diện", style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.black,
           iconTheme: IconThemeData(color: Colors.white),
           leading: IconButton(

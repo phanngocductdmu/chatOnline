@@ -3,6 +3,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chatonline/Search/TimKiem.dart';
 import 'personalPage.dart';
+import 'setting/setting.dart';
+import 'package:chatonline/User/chatBot/chatBot.dart';
 
 class User extends StatefulWidget {
   const User({super.key});
@@ -43,8 +45,8 @@ class _UserState extends State<User> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus(); // Ẩn bàn phím
-        setState(() {}); // Cập nhật lại giao diện khi ẩn bàn phím
+        FocusScope.of(context).unfocus();
+        setState(() {});
       },
       child: Scaffold(
         backgroundColor: Color(0xFFF3F4F6),
@@ -91,8 +93,10 @@ class _UserState extends State<User> {
             ),
             actions: [
               IconButton(
-                icon: Icon(Icons.settings),
-                onPressed: () {},
+                icon: Icon(Icons.settings_outlined),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => Setting()));
+                },
               ),
             ],
             iconTheme: IconThemeData(color: Colors.white),
@@ -185,13 +189,72 @@ class _UserState extends State<User> {
                     ),
                   ],
                 ),
+                //chat bot
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ChatBotScreen()));
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 5),
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            // Icon Cloud
+                            SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: const Icon(
+                                Icons.smart_toy_outlined,
+                                color: Colors.grey,
+                                size: 25,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            // Tên và trạng thái
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Chat bot",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                ),
+                                const Text(
+                                  "Trợ lý ảo hỗ trợ thông minh",
+                                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 15),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.grey,
+                            size: 17,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const Divider(
+                  thickness: 1,
+                  height: 1,
+                  color: Color(0xFFF3F4F6),
+                ),
 
                 GestureDetector(
                   onTap: () {
                     print("Đã nhấn vào mục Cloud của tôi");
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(top: 5),
+                    margin: const EdgeInsets.only(top: 0),
                     color: Colors.white, // Nền trắng
                     padding: const EdgeInsets.all(8),
                     child: Row(
@@ -298,7 +361,6 @@ class _UserState extends State<User> {
                     ),
                   ),
                 ),
-
 
                 const Divider(
                   thickness: 1,

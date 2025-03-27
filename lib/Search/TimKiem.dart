@@ -290,6 +290,7 @@ class _TimKiemState extends State<TimKiem> {
         "FriendID": room["FriendID"] is List ? List<String>.from(room["FriendID"]) : [],
         "numMembers": room["numMembers"],
         "nickname": room["nickname"],
+        "totalTime": room["totalTime"],
       });
     }
 
@@ -350,6 +351,7 @@ class _TimKiemState extends State<TimKiem> {
                             description: item['description'],
                             member: List<String>.from(item['members']),
                             isFriend: item["isFriend"],
+                            totalTime: item["totalTime"],
                           ),
                         ),
                       );
@@ -381,6 +383,7 @@ class _TimKiemState extends State<TimKiem> {
                         description: item['description'],
                         member: item['members'],
                         isFriend: item["isFriend"],
+                        totalTime: item["totalTime"],
                       ),
                     ),
                   );
@@ -405,6 +408,7 @@ class _TimKiemState extends State<TimKiem> {
                         description: item['description'],
                         member: item['members'],
                         isFriend: item["isFriend"],
+                        totalTime: item["totalTime"],
                       ),
                     ),
                   );

@@ -92,6 +92,7 @@ class _MessState extends State<Mess> {
             'groupAvatar': value['groupAvatar'] ?? '',
             'groupName': value['groupName'] ?? '',
             'description': value['description'] ?? '',
+            'totalTime': value['totalTime'] ?? '',
           });
         }
       });
@@ -305,6 +306,7 @@ class _MessState extends State<Mess> {
                                     description: chatRoom['description'],
                                     isFriend: isFriend,
                                     member: List<String>.from(chatRoom['members']),
+                                    totalTime: chatRoom['totalTime'],
                                   ),
                                 ),
                               );

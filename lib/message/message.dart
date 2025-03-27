@@ -10,7 +10,7 @@ import 'package:chatonline/message/optionGroup/addGroup.dart';
 import 'package:chatonline/HomePage.dart';
 
 class Message extends StatefulWidget {
-  final String chatRoomId, idFriend, avt, fullName, userId, groupAvatar, groupName, description;
+  final String chatRoomId, idFriend, avt, fullName, userId, groupAvatar, groupName, description, totalTime;
   final bool typeRoom, isFriend;
   final int numMembers;
   final List<String> member;
@@ -29,6 +29,7 @@ class Message extends StatefulWidget {
     required this.member,
     required this.description,
     required this.isFriend,
+    required this.totalTime,
   });
 
   @override
@@ -62,6 +63,68 @@ class MessageState extends State<Message> {
         setState(() => _isTyping = false);
       }
     });
+  }
+
+  Future<Map<String, String>?> getMyInfo(String userId) async {
+    DatabaseReference userRef = FirebaseDatabase.instance.ref("users/$userId");
+    DatabaseEvent event = await userRef.once();
+
+    if (event.snapshot.value != null) {
+      Map<dynamic, dynamic> userData = event.snapshot.value as Map;
+      return {
+        'fullName': userData['fullName'] ?? 'Unknown',
+        'avt': userData['avt'] ?? '',
+      };
+    } else {
+      return null;
+    }
+  }
+
+  void addCallStatus(String typeCall) async {
+    Map<String, String>? myInfo = await getMyInfo(widget.userId);
+    if (myInfo == null) throw Exception("Không tìm thấy thông tin người dùng.");
+    String myFullName = myInfo['fullName']!;
+    String myavt = myInfo['avt']!;
+    DatabaseReference callRef = FirebaseDatabase.instance.ref("calls");
+    DatabaseEvent event = await callRef.orderByChild('channelName').equalTo(widget.chatRoomId).once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      snapshot.children.forEach((childSnapshot) async {
+        var callKey = childSnapshot.key;
+        var callData = childSnapshot.value as Map<dynamic, dynamic>;
+        String currentStatus = callData['status'];
+        // print('Current status: $currentStatus');
+        if (currentStatus == 'ended' || currentStatus == 'refuse' || currentStatus == 'missed') {
+          await FirebaseDatabase.instance.ref("calls/$callKey").update({
+            'status': 'calling',
+            'timestamp': ServerValue.timestamp,
+            'idFriend': widget.idFriend,
+            'myavt': myavt,
+            'myID': widget.userId,
+            'callerAvatar': widget.avt,
+            'myName': myFullName,
+            'nameFriend': widget.fullName,
+            'typeCall': typeCall,
+          });
+          // print("📢 Cuộc gọi đã được cập nhật thành 'Đang gọi...'.");
+        } else {
+          // print("📢 Trạng thái cuộc gọi không thay đổi.");
+        }
+      });
+    } else {
+      await FirebaseDatabase.instance.ref("calls").push().set({
+        'status': 'calling',
+        'channelName': widget.chatRoomId,
+        'idFriend': widget.idFriend,
+        'nameFriend': widget.fullName,
+        'callerAvatar': widget.avt,
+        'myName': myFullName,
+        'myavt': myavt,
+        'myID': widget.userId,
+        'timestamp': ServerValue.timestamp,
+        'typeCall': typeCall,
+      });
+    }
   }
 
   @override
@@ -185,6 +248,7 @@ class MessageState extends State<Message> {
               IconButton(
                 icon: const Icon(Icons.call, color: Colors.white), // Icon gọi thoại
                 onPressed: () {
+                  addCallStatus('call');
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -197,11 +261,13 @@ class MessageState extends State<Message> {
                       ),
                     ),
                   );
+
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.videocam, color: Colors.white), // Icon gọi video
                 onPressed: () {
+                  addCallStatus("videoCall");
                   Navigator.push(
                     context,
                     MaterialPageRoute(

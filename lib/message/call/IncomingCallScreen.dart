@@ -34,10 +34,10 @@ class IncomingCallScreen extends StatefulWidget {
   });
 
   @override
-  _IncomingCallScreenState createState() => _IncomingCallScreenState();
+  IncomingCallScreenState createState() => IncomingCallScreenState();
 }
 
-class _IncomingCallScreenState extends State<IncomingCallScreen> {
+class IncomingCallScreenState extends State<IncomingCallScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   @override
   void initState() {
@@ -48,14 +48,22 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
 
   Future<void> _playRingtone() async {
     try {
-      await _audioPlayer.setSource(AssetSource("audio/cuocgoiden.mp3"));
+      String filePath = await copyAssetToTemp("assets/audio/cuocgoiden.mp3");
+      await _audioPlayer.setSourceDeviceFile(filePath);
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.resume(); // Bắt đầu phát
+      await _audioPlayer.resume();
     } catch (e) {
       print("🔴 Lỗi khi phát âm thanh: $e");
     }
   }
 
+  Future<String> copyAssetToTemp(String assetPath) async {
+    final byteData = await rootBundle.load(assetPath);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/cuocgoiden.mp3');
+    await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+    return file.path;
+  }
 
   bool hasPopped = false;
   void _checkCallStatus() {
@@ -78,12 +86,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
     }
   }
 
-  Future<String> copyAssetToTemp(String assetPath) async {
-    final byteData = await rootBundle.load(assetPath);
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/cuocgoidi.mp3');
-    await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
-    return file.path;
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -107,11 +113,20 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // Avatar người gọi
+
               CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(widget.myAVT),
+                radius: 50,
+                backgroundImage: widget.myAVT != null && widget.myAVT.isNotEmpty
+                    ? NetworkImage(widget.myAVT)
+                    : (widget.myAVT != null && widget.myAVT.isNotEmpty
+                    ? NetworkImage(widget.myAVT)
+                    : null),
+                backgroundColor: widget.myAVT == null || widget.myAVT.isEmpty ? Colors.grey[300] : null,
+                child: (widget.myAVT == null || widget.myAVT.isEmpty) && (widget.myAVT == null || widget.myAVT.isEmpty)
+                    ? Icon(Icons.person, size: 50, color: Colors.grey[700])
+                    : null,
               ),
+
               const SizedBox(height: 20),
               // Tên người gọi
               Text(
@@ -169,7 +184,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                   GestureDetector(
                     onTap: () {
                       _audioPlayer.stop();
-                      if (widget.typeCall == "VideoCall") {
+                      if (widget.typeCall == "videoCall") {
+                        Navigator.pop(context);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -183,6 +199,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           ),
                         );
                       } else {
+                        Navigator.pop(context);
                         Navigator.push(
                           context,
                           MaterialPageRoute(

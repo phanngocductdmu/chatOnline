@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'createMoments.dart';
 import 'seeMomemts.dart';
 import 'package:chatonline/diary/seeMedia.dart';
-import 'ChangeAvatar.dart';
+import 'option/ChangeAvatar.dart';
 
 class ShowAvatarOptions extends StatelessWidget {
   final Map<String, dynamic> avatarData;
