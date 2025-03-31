@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:chatonline/message/option/personalPage/information.dart';
 import 'changeNickname.dart';
 import 'ReportUser.dart';
+import 'package:chatonline/message/option/personalPage/introduce.dart';
 
 class Option extends StatefulWidget {
   final String idFriend;
@@ -168,6 +169,74 @@ class _OptionState extends State<Option> {
     );
   }
 
+  Future<void> deleteFriend(BuildContext context, String idUser, String idFriend) async {
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Xác nhận"),
+          content: Text("Bạn có chắc chắn muốn xóa bạn bè này không?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // Hủy
+              child: Text(
+                "Hủy",
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true), // Đồng ý
+              child: Text(
+                "Xóa",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!confirmDelete) return; // Nếu chọn hủy thì không xóa
+
+    DatabaseReference userFriendsRef =
+    FirebaseDatabase.instance.ref().child('friends').child(idUser);
+    DatabaseReference friendFriendsRef =
+    FirebaseDatabase.instance.ref().child('friends').child(idFriend);
+
+    DatabaseEvent userEvent = await userFriendsRef.once();
+    DatabaseEvent friendEvent = await friendFriendsRef.once();
+
+    String? userFriendKey;
+    String? friendUserKey;
+
+    if (userEvent.snapshot.exists) {
+      Map<dynamic, dynamic> userFriendsMap =
+      userEvent.snapshot.value as Map<dynamic, dynamic>;
+
+      userFriendsMap.forEach((key, value) {
+        if (key == idFriend) {
+          userFriendKey = key;
+        }
+      });
+    }
+
+    if (friendEvent.snapshot.exists) {
+      Map<dynamic, dynamic> friendFriendsMap =
+      friendEvent.snapshot.value as Map<dynamic, dynamic>;
+
+      friendFriendsMap.forEach((key, value) {
+        if (key == idUser) {
+          friendUserKey = key;
+        }
+      });
+    }
+
+    await Future.wait([
+      if (userFriendKey != null) userFriendsRef.child(userFriendKey!).remove(),
+      if (friendUserKey != null) friendFriendsRef.child(friendUserKey!).remove(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -299,11 +368,12 @@ class _OptionState extends State<Option> {
                     color: Color(0xFFF3F4F6), // Màu xám nhạt theo mã hex
                   ),
 
-
                   // Giới thiệu bạn thân
                   InkWell(
                     onTap: () {
-                      print("Nhấn Giới thiệu cho bạn");
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => Introduce(userId: widget.idUser, friendId: widget.idFriend, idChatRooms: widget.idChatRoom,))
+                      );
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(10),
@@ -494,7 +564,7 @@ class _OptionState extends State<Option> {
                   // Đổi tên gợi nhớ
                   InkWell(
                     onTap: () {
-                      print("Nhấn Báo xấu");
+                      deleteFriend(context ,widget.idUser, widget.idFriend);
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(10),

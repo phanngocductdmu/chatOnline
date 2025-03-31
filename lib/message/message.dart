@@ -10,7 +10,7 @@ import 'package:chatonline/message/optionGroup/addGroup.dart';
 import 'package:chatonline/HomePage.dart';
 
 class Message extends StatefulWidget {
-  final String chatRoomId, idFriend, avt, fullName, userId, groupAvatar, groupName, description, totalTime;
+  final String chatRoomId, idFriend, avt, fullName, userId, groupAvatar, groupName, description, totalTime, senderId;
   final bool typeRoom, isFriend;
   final int numMembers;
   final List<String> member;
@@ -30,6 +30,7 @@ class Message extends StatefulWidget {
     required this.description,
     required this.isFriend,
     required this.totalTime,
+    required this.senderId,
   });
 
   @override
@@ -53,6 +54,28 @@ class MessageState extends State<Message> {
   void initState() {
     super.initState();
     _listenTypingStatus();
+    _markMessagesAsRead();
+  }
+
+  void _markMessagesAsRead() {
+    if (widget.isFriend) {
+      final messagesRef = _database.child('chats/${widget.chatRoomId}/messages');
+      messagesRef.get().then((snapshot) {
+        if (snapshot.exists && snapshot.value is Map) {
+          final messages = snapshot.value as Map;
+          messages.forEach((key, messageData) {
+            if (messageData is Map &&
+                messageData['senderId'] != widget.userId &&
+                (messageData['status'] == 'Đã gửi' || messageData['status'] == 'Đã nhận')) {
+              messagesRef.child(key).update({'status': 'Đã xem'});
+            }
+          });
+          if(widget.userId != widget.senderId){
+            _database.child('chatRooms/${widget.chatRoomId}').update({'status': 'Đã xem'});
+          }
+        }
+      });
+    }
   }
 
   void _listenTypingStatus() {
@@ -285,7 +308,7 @@ class MessageState extends State<Message> {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () async {
               final result = await Navigator.push(
                 context,

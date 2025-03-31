@@ -237,21 +237,28 @@ class _OptionMessageState extends State<OptionMessage> {
                 children: [
                   CircleAvatar(
                     radius: 40,
-                    backgroundImage: NetworkImage(userData!['AVT'] ?? ''),
+                    backgroundImage: userData?['AVT'] != null && userData!['AVT'].isNotEmpty
+                        ? NetworkImage(userData!['AVT'])
+                        : null,
+                    child: (userData?['AVT'] == null || userData!['AVT'].isEmpty)
+                        ? Icon(Icons.person, size: 50, color: Colors.grey,)
+                        : null,
                   ),
                   SizedBox(height: 10),
                   Text(
                     widget.nickName ?? userData!['fullName'],
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  Text(
-                    '${userData!['bio'] ?? ''}',
+                  userData?['bio'] != null && userData!['bio'].isNotEmpty
+                      ? Text(
+                    '${userData!['bio']}',
                     style: TextStyle(
                       fontSize: 16,
                       fontStyle: FontStyle.italic,
                       color: Colors.grey,
                     ),
-                  ),
+                  )
+                      : SizedBox.shrink(),
                   SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -619,7 +626,3 @@ Widget _buildIconText(IconData icon, String label, VoidCallback onTap) {
     ],
   );
 }
-
-
-
-

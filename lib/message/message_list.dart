@@ -23,7 +23,6 @@ class MessageList extends StatefulWidget {
   final bool typeRoom;
   final bool isFriend;
 
-
   const MessageList({
     super.key,
     required this.chatRoomId,
@@ -38,10 +37,10 @@ class MessageList extends StatefulWidget {
   });
 
   @override
-  _MessageListState createState() => _MessageListState();
+  MessageListState createState() => MessageListState();
 }
 
-class _MessageListState extends State<MessageList> {
+class MessageListState extends State<MessageList> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   List<Map<String, dynamic>> messages = [];
   String? selectedMessageId;
@@ -211,10 +210,11 @@ class _MessageListState extends State<MessageList> {
 
       return {
         'avatar': data?['AVT']?.toString() ?? '',
-        'fullName': data?['fullName']?.toString() ?? ''
+        'fullName': data?['fullName']?.toString() ?? '',
+        'email': data?['email']?.toString() ?? ''
       };
     } catch (e) {
-      return {'avatar': '', 'fullName': ''};
+      return {'avatar': '', 'fullName': '', 'email': ''};
     }
   }
 
@@ -718,6 +718,8 @@ class _MessageListState extends State<MessageList> {
                                           message['typeChat'] == 'image' ||
                                           message['typeChat'] == 'video'
                                           ? Colors.transparent
+                                          : message['typeChat'] == 'introduce'
+                                          ? const Color(0xff13cc80)
                                           : (isMe ? const Color(0xFFB1EBC7) : Colors.white),
                                       borderRadius: BorderRadius.circular(8.0),
                                     ),
@@ -748,12 +750,15 @@ class _MessageListState extends State<MessageList> {
                                             style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
                                           ),
                                         _buildMessageContent(message),
-                                        if (message['typeChat'] != 'sticker')
+                                        if (message['typeChat'] != 'sticker' && message['typeChat'] != 'image' && message['typeChat'] != 'video')
                                           Padding(
                                             padding: const EdgeInsets.only(top: 4),
                                             child: Text(
                                               message['time'],
-                                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                              style: TextStyle(
+                                                color: message['typeChat'] == 'introduce' ? Colors.white : Colors.grey,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                       ],
@@ -764,7 +769,7 @@ class _MessageListState extends State<MessageList> {
                                   Positioned(
                                     left: isMe ? (message['typeChat'] == 'image' || message['typeChat'] == 'video' ? 20 : 10) : null,
                                     right: isMe ? null : (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 20 : 10,
-                                    bottom: (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 25 : -8,
+                                    bottom: (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 5 : -8,
                                     child: GestureDetector(
                                       onTap: () {
                                         String messageId = message['id']?.toString() ?? "";
@@ -791,7 +796,6 @@ class _MessageListState extends State<MessageList> {
                                             }
                                           });
 
-                                          // Sắp xếp theo số lượng reaction giảm dần
                                           sortedReactions = mergedReactions.entries.toList()
                                             ..sort((a, b) => b.value.compareTo(a.value));
                                         }
@@ -1226,6 +1230,78 @@ class _MessageListState extends State<MessageList> {
 
       case 'link':
         return LinkPreview(messageText: message['text'] ?? '');
+
+      case 'introduce':
+        return FutureBuilder<Map<String, String>>(
+          future: _fetchUserInfo(message['text'] ?? ''),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator()); // Hiển thị khi đang tải dữ liệu
+            }
+            final String avatarUrl = snapshot.data!['avatar'] ?? '';
+            final String fullName = snapshot.data!['fullName'] ?? 'Người dùng';
+            final String email = snapshot.data!['email'] ?? 'Không có email';
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start, // Căn sát trái
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10), // Thêm padding nhỏ để không quá sát viền
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 35,
+                        backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        backgroundColor: avatarUrl.isEmpty ? Colors.grey : Colors.transparent,
+                        child: avatarUrl.isEmpty ? Icon(Icons.person, color: Colors.white, size: 30) : null,
+                      ),
+                      SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fullName,
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              email,
+                              style: TextStyle(fontSize: 14, color: Colors.grey[200]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 5),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.message, color: Colors.black),
+                        SizedBox(width: 8),
+                        Text('Nhắn tin', style: TextStyle(color: Colors.black)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
 
       default:
         return const Text("Không hỗ trợ loại tin nhắn này");

@@ -171,7 +171,8 @@ class AllState extends State<All> {
                             member: List<String>.from(group['members']),
                             description: group['description'],
                             isFriend: true,
-                            totalTime: group['totalTime'],
+                            totalTime: group['totalTime'] ?? '',
+                            senderId: group['senderId'] ?? '',
                           ),
                         ),
                       );

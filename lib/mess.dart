@@ -48,7 +48,6 @@ class _MessState extends State<Mess> {
           _friends = friendIds;
         });
       }
-      // print("Danh sách bạn bè đã tải: $_friends");
     });
   }
 
@@ -93,6 +92,7 @@ class _MessState extends State<Mess> {
             'groupName': value['groupName'] ?? '',
             'description': value['description'] ?? '',
             'totalTime': value['totalTime'] ?? '',
+            'senderId': value['senderId'] ?? '',
           });
         }
       });
@@ -262,8 +262,8 @@ class _MessState extends State<Mess> {
                           message: chatRoom['lastMessage'],
                           time: 'Gần đây',
                           avatarUrl: "",
-                          senderId: chatRoom['senderId']?.toString() ?? '',
-                          currentUserId: idUser ?? '',
+                          senderId: chatRoom['senderId'] ?? '',
+                          currentUserId: idUser!,
                           status: lastMessageStatus,
                           typeRoom: chatRoom['typeRoom'],
                           groupAvatar: chatRoom['groupAvatar'],
@@ -280,16 +280,18 @@ class _MessState extends State<Mess> {
                           time: formatTimestamp(chatRoom['timestamp']),
                           avatarUrl: avatarUrl,
                           status: lastMessageStatus,
-                          senderId: chatRoom['senderId']?.toString() ?? '',
-                          currentUserId: idUser ?? '',
+                          senderId: chatRoom['senderId'] ?? '',
+                          currentUserId: idUser!,
                           typeRoom: chatRoom['typeRoom'],
                           groupAvatar: chatRoom['groupAvatar'],
                           groupName: chatRoom['groupName'],
                           onTap: () {
                             if (idUser != null) {
-                              _database.child('chatRooms/${chatRoom['roomId']}').update({
-                                'status': 'Đã xem'
-                              });
+                              if(chatRoom['senderId'] != idUser){
+                                _database.child('chatRooms/${chatRoom['roomId']}').update({
+                                  'status': 'Đã xem'
+                                });
+                              }
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -299,6 +301,7 @@ class _MessState extends State<Mess> {
                                     avt: avatarUrl,
                                     fullName: chatRoom['nickname'] ?? friendName,
                                     userId: idUser!,
+                                    senderId: chatRoom['senderId'] ?? '',
                                     typeRoom: chatRoom['typeRoom'],
                                     groupAvatar: chatRoom['groupAvatar'],
                                     groupName: chatRoom['groupName'],
@@ -320,8 +323,8 @@ class _MessState extends State<Mess> {
                           time: 'Gần đây',
                           avatarUrl: "",
                           status: lastMessageStatus,
-                          senderId: chatRoom['senderId']?.toString() ?? '',
-                          currentUserId: idUser ?? '',
+                          senderId: chatRoom['senderId'] ?? '',
+                          currentUserId: idUser!,
                           typeRoom: chatRoom['typeRoom'],
                           groupAvatar: chatRoom['groupAvatar'],
                           groupName: chatRoom['groupName'],

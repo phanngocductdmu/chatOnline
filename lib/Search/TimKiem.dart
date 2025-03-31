@@ -291,6 +291,7 @@ class _TimKiemState extends State<TimKiem> {
         "numMembers": room["numMembers"],
         "nickname": room["nickname"],
         "totalTime": room["totalTime"],
+        "senderId":room["senderId"]
       });
     }
 
@@ -352,6 +353,7 @@ class _TimKiemState extends State<TimKiem> {
                             member: List<String>.from(item['members']),
                             isFriend: item["isFriend"],
                             totalTime: item["totalTime"],
+                              senderId: item["senderId"],
                           ),
                         ),
                       );
@@ -384,6 +386,7 @@ class _TimKiemState extends State<TimKiem> {
                         member: item['members'],
                         isFriend: item["isFriend"],
                         totalTime: item["totalTime"],
+                        senderId: item["senderId"],
                       ),
                     ),
                   );
@@ -409,6 +412,7 @@ class _TimKiemState extends State<TimKiem> {
                         member: item['members'],
                         isFriend: item["isFriend"],
                         totalTime: item["totalTime"],
+                        senderId: item["senderId"],
                       ),
                     ),
                   );

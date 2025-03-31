@@ -37,7 +37,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false  // ✅ Sửa chính xác
+            minifyEnabled false
             shrinkResources false
             signingConfig = signingConfigs.debug
         }

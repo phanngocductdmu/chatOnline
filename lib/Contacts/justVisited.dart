@@ -145,6 +145,7 @@ class JustVisitedState extends State<JustVisited> {
                         description: friend['description'],
                         isFriend: true,
                         totalTime: friend['totalTime'],
+                        senderId: friend['senderId'] ?? '',
                       ),
                     ),
                   );

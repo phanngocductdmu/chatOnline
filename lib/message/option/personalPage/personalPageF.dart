@@ -564,7 +564,22 @@ class _PersonalPageState extends State<PersonalPage> {
                   );
                 }
               }
-              return Center(child: SizedBox());
+              return Center(child: CircleAvatar(
+                radius: 49,
+                backgroundColor: Color(0xFFF5F6F8),
+                child: CircleAvatar(
+                  radius: 46,
+                  backgroundImage: avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  backgroundColor: avatarUrl.isEmpty
+                      ? Colors.grey[300]
+                      : Colors.transparent,
+                  child: avatarUrl.isEmpty
+                      ? Icon(Icons.person, color: Colors.white, size: 50)
+                      : null,
+                ),
+              ),);
             },
           );
         } else {
@@ -759,6 +774,7 @@ class _PersonalPageState extends State<PersonalPage> {
                         description: "",
                         isFriend: widget.isFriend,
                         totalTime: '',
+                        senderId: '',
                       ),
                     )
                   );

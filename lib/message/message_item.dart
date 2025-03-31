@@ -31,7 +31,7 @@ class MessageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isMyMessage = senderId == currentUserId;
-    bool isUnread = !isMyMessage && (status == 'Đã gửi' || status == 'Đã nhận');
+    bool isUnread = !isMyMessage && status != 'Đã xem';
 
     return Container(
       color: Colors.white,

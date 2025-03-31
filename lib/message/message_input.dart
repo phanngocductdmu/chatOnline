@@ -19,8 +19,15 @@ class MessageInput extends StatefulWidget {
   final Function()? onClearReply;
   final bool isFriend;
 
-  const MessageInput({super.key, required this.chatRoomId, required this.senderId, required this.selectedReplyMessage, required this.onClearReply, required this.isFriend, required this.idFriend});
-
+  const MessageInput({
+    super.key,
+    required this.chatRoomId,
+    required this.senderId,
+    required this.selectedReplyMessage,
+    required this.onClearReply,
+    required this.isFriend,
+    required this.idFriend
+  });
   @override
   MessageInputState createState() => MessageInputState();
 }
@@ -41,7 +48,6 @@ class MessageInputState extends State<MessageInput> {
   void initState() {
     super.initState();
     _updateUserChatStatus(true, widget.chatRoomId);
-    _markMessagesAsRead();
     _loadStickers();
   }
 
@@ -135,21 +141,6 @@ class MessageInputState extends State<MessageInput> {
       'status': newStatus,
       'senderId': widget.senderId,
     });
-  }
-
-  void _markMessagesAsRead() {
-    if(widget.isFriend){
-      final messagesRef = _database.child('chats/${widget.chatRoomId}/messages');
-      messagesRef.onChildAdded.listen((event) {
-        if (event.snapshot.exists && event.snapshot.value is Map) {
-          final messageData = event.snapshot.value as Map;
-          if (messageData['senderId'] != widget.senderId && (messageData['status'] == 'Đã gửi' || messageData['status'] == 'Đã nhận')) {
-            messagesRef.child(event.snapshot.key!).update({'status': 'Đã xem'});
-          }
-        }
-      });
-      _database.child('chatRooms/${widget.chatRoomId}').update({'status': 'Đã xem'});
-    }
   }
 
   void _setTypingStatus(bool isTyping) {
@@ -337,7 +328,6 @@ class MessageInputState extends State<MessageInput> {
       });
     }
   }
-
 
   Future<void> pickFile() async {
     if (await Permission.storage.request().isGranted ||

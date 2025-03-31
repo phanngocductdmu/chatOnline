@@ -34,6 +34,9 @@ class _VideoCallState extends State<VideoCall> {
   Duration callDuration = Duration();
   DateTime? connectedTime;
   int timeout = 15;
+  bool hide = false;
+  bool isAISwitchOn = true;
+  bool isBlurEnabled = false;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
   @override
@@ -395,18 +398,79 @@ class _VideoCallState extends State<VideoCall> {
     }
   }
 
+  Future<void> setBlurBackground() async {
+    if (_engine == null) {
+      // print("RTC Engine chưa khởi tạo.");
+      return;
+    }
+    await _engine!.enableVideo();
+    // Cấu hình làm mờ nền
+    final virtualBackgroundSource = VirtualBackgroundSource(
+      backgroundSourceType: BackgroundSourceType.backgroundBlur,
+      blurDegree: BackgroundBlurDegree.blurDegreeHigh,
+    );
+    final segmentationProperty = SegmentationProperty(
+      modelType: SegModelType.segModelAi,
+      greenCapacity: 0.5,
+    );
+    // Bật tính năng Virtual Background
+    try {
+      await Future.delayed(Duration(milliseconds: 500));
+      await _engine!.enableVirtualBackground(
+        enabled: true,
+        backgroundSource: virtualBackgroundSource,
+        segproperty: segmentationProperty,
+      );
+      // print("Virtual Background đã được kích hoạt.");
+    } catch (e) {
+      // print("Lỗi khi bật Virtual Background: $e");
+    }
+  }
+
+  Future<void> toggleBlurBackground() async {
+    if (isBlurEnabled) {
+      await _engine?.enableVirtualBackground(
+        enabled: false,
+        backgroundSource: const VirtualBackgroundSource(
+          backgroundSourceType: BackgroundSourceType.backgroundNone,
+        ),
+        segproperty: const SegmentationProperty(
+          modelType: SegModelType.segModelAi,
+          greenCapacity: 0.5,
+        ),
+      );
+    } else {
+      await setBlurBackground();
+    }
+    isBlurEnabled = !isBlurEnabled;
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          _remoteUid != null ? _remoteVideo() : _buildMyVideoFullScreen(),
-          if (_remoteUid == null) _buildWaitingOverlay(),
-          if (_remoteUid != null) Positioned(top: 30, right: 10, child: _buildMyVideoSmall()),
-          _buildControlPanel(),
-        ],
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            hide = !hide;
+          });
+        },
+        child: Stack(
+          children: [
+            _remoteUid != null ? _remoteVideo() : _buildMyVideoFullScreen(),
+            if (_remoteUid == null) _buildWaitingOverlay(),
+            if (_remoteUid != null) Positioned(top: 30, right: 10, child: _buildMyVideoSmall()),
+            if (_remoteUid != null) Positioned(top: 30, left: 10, child: switchAI()),
+            if (_remoteUid != null)
+              Positioned(
+                top: MediaQuery.of(context).size.height / 2 - 50,
+                right: 10,
+                child: optionVideoCall(),
+              ),
+            _buildControlPanel(),
+          ],
+        ),
       ),
     );
   }
@@ -420,6 +484,54 @@ class _VideoCallState extends State<VideoCall> {
         rtcEngine: _engine!,
         canvas: const VideoCanvas(uid: 0),
       ),
+    );
+  }
+
+  Widget switchAI() {
+    if (hide) return SizedBox();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Transform.scale(
+          scale: 0.6,
+          child: Switch(
+            value: isAISwitchOn,
+            activeColor: Color(0xFF11998e),
+            activeTrackColor: Color(0xFF38ef7d),
+            onChanged: (value) {
+              setState(() {
+                isAISwitchOn = value;
+              });
+            },
+          ),
+        ),
+        const Text("AI", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget optionVideoCall() {
+    if (hide) return SizedBox();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(
+            isBlurEnabled ? Icons.blur_off : Icons.blur_on,
+            color: Colors.white,
+          ),
+          onPressed: () async {
+            await toggleBlurBackground(); // Gọi đúng cách
+          },
+        ),
+        SizedBox(height: 10),
+        IconButton(
+          icon: Icon(Icons.face_retouching_natural_outlined, color: Colors.white), // Filter
+          onPressed: () {
+            
+          },
+        ),
+      ],
     );
   }
 
@@ -494,13 +606,22 @@ class _VideoCallState extends State<VideoCall> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildControlButton(
-              isCameraOn ? Icons.videocam : Icons.videocam_off, toggleCamera,
+            if (!hide) _buildControlButton(
+              isCameraOn ? Icons.videocam : Icons.videocam_off,
+              toggleCamera,
               isCameraOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
             ),
-            _buildControlButton(isMicOn ? Icons.mic : Icons.mic_off, toggleMic, isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,),
-            _buildControlButton(isSpeakerOn ? Icons.volume_up : Icons.volume_off, toggleSpeaker, isSpeakerOn ? Colors.green : Colors.grey[800] ?? Colors.grey,),
-            _buildControlButton(Icons.call_end, endCall, Colors.red),
+            if (!hide) _buildControlButton(
+              isMicOn ? Icons.mic : Icons.mic_off,
+              toggleMic,
+              isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+            ),
+            if (!hide) _buildControlButton(
+              isSpeakerOn ? Icons.volume_up : Icons.volume_off,
+              toggleSpeaker,
+              isSpeakerOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+            ),
+            if (!hide) _buildControlButton(Icons.call_end, endCall, Colors.red),
           ],
         ),
       ),
