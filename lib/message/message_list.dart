@@ -1236,7 +1236,7 @@ class MessageListState extends State<MessageList> {
           future: _fetchUserInfo(message['text'] ?? ''),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator()); // Hiển thị khi đang tải dữ liệu
+              return Center(child: SizedBox()); // Hiển thị khi đang tải dữ liệu
             }
             final String avatarUrl = snapshot.data!['avatar'] ?? '';
             final String fullName = snapshot.data!['fullName'] ?? 'Người dùng';

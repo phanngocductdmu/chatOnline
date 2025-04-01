@@ -176,7 +176,7 @@ class MyHomePage extends StatelessWidget {
         child: ElevatedButton(
           onPressed: null, // Add your language change logic here
           style: ElevatedButton.styleFrom(
-            fixedSize: const Size(134, 40),
+            minimumSize: const Size(134, 40), // Tránh lỗi overflow
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(
@@ -185,11 +185,13 @@ class MyHomePage extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min, // Không chiếm toàn bộ không gian
             children: [
-              const Text('Tiếng Việt', style: TextStyle(fontSize: 13)),
+              Flexible(
+                child: Text('Tiếng Việt', style: TextStyle(fontSize: 13)),
+              ),
               const SizedBox(width: 3),
-              Image.asset('assets/image/morong.png', width: 22, height: 18),
+              Image.asset('assets/image/morong.png', width: 18, height: 14),
             ],
           ),
         ),

@@ -25,10 +25,10 @@ class OptionGroup extends StatefulWidget {
   });
 
   @override
-  State<OptionGroup> createState() => _OptionGroupState();
+  State<OptionGroup> createState() => OptionGroupState();
 }
 
-class _OptionGroupState extends State<OptionGroup> {
+class OptionGroupState extends State<OptionGroup> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   Map<String, dynamic>? userData;
   bool isPinned = false;
@@ -388,8 +388,6 @@ class _OptionGroupState extends State<OptionGroup> {
                 ],
               ),
             ),
-
-            SizedBox(height: 8),
 
             Container(
               padding: EdgeInsets.all(10),
@@ -769,7 +767,3 @@ Widget _buildIconText(IconData icon, String label, VoidCallback onTap) {
     ],
   );
 }
-
-
-
-

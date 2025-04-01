@@ -9,7 +9,6 @@ class OptionSearch extends StatefulWidget {
   final String idUser;
   final bool isFriend;
 
-
   const OptionSearch({
     super.key,
     required this.idFriend,

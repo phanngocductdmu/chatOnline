@@ -1,5 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
@@ -24,12 +24,12 @@ class AuthService {
               await prefs.setString('userId', userId);
 
               // ✅ Lấy FCM Token
-              String? fcmToken = await FirebaseMessaging.instance.getToken();
+              // String? fcmToken = await FirebaseMessaging.instance.getToken();
 
-              if (fcmToken != null) {
-                // ✅ Lưu token vào Realtime Database
-                await usersRef.child(userId).update({'fcmToken': fcmToken});
-              }
+              // if (fcmToken != null) {
+              //   // ✅ Lưu token vào Realtime Database
+              //   await usersRef.child(userId).update({'fcmToken': fcmToken});
+              // }
 
               return true; // Đăng nhập thành công
             } else {

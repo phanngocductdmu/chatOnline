@@ -126,7 +126,6 @@ class SeeMediaState extends State<SeeMedia> {
 
   void editPrivacy(BuildContext context, String postId, String currentPrivacy) {
     DatabaseReference postRef = FirebaseDatabase.instance.ref("posts/$postId");
-
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(

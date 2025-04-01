@@ -7,6 +7,7 @@ buildscript {
     dependencies {
         // Phiên bản Gradle Plugin ổn định nhất
         classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'com.google.gms:google-services:4.4.0'
 
         // Phiên bản Kotlin ổn định
         ext.kotlin_version = '1.8.0'

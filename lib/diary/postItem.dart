@@ -425,47 +425,44 @@ class PostItemState extends State<PostItem> {
                       backgroundColor: Colors.grey[300],
                     ),
                     SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              fullName,
-                              style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
-                            ),
-                            Text(
-                              type == 'avatar'
-                                  ? " đã thay đổi ảnh đại diện"
-                                  : type == 'imageCover'
-                                  ? " đã thay đổi ảnh bìa"
-                                  : "",
-                              style: TextStyle(fontSize: 14, color: Colors.black),
-                            )
-                          ],
-                        ),
-                        Text(
-                          formattedTime(timestamp),
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
+                    Expanded( // Thêm Expanded ở đây
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap( // Dùng Wrap thay vì Row để xuống dòng nếu cần
+                            children: [
+                              Text(
+                                fullName,
+                                style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                type == 'avatar'
+                                    ? " đã thay đổi ảnh đại diện"
+                                    : type == 'imageCover'
+                                    ? " đã thay đổi ảnh bìa"
+                                    : "",
+                                style: TextStyle(fontSize: 14, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            formattedTime(timestamp),
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
-                    Spacer(),
-                    userId == IDUser
-                        ? IconButton(
+                    IconButton(
                       onPressed: () {
-                        bottomSheet(context, id, privacy, text, fileUrl);
-                      },
-                      icon: Icon(Icons.more_horiz, color: Colors.grey),
-                    )
-                        : IconButton(
-                      onPressed: () {
-                        _showReportBottomSheet(context, IDUser, userId!);
+                        userId == IDUser
+                            ? bottomSheet(context, id, privacy, text, fileUrl)
+                            : _showReportBottomSheet(context, IDUser, userId!);
                       },
                       icon: Icon(Icons.more_horiz, color: Colors.grey),
                     ),
                   ],
                 ),
+
                 if (text.isNotEmpty)
                   Text(
                     text,
@@ -479,12 +476,12 @@ class PostItemState extends State<PostItem> {
                         onTap: () {
                           Navigator.push(context,
                             MaterialPageRoute(builder: (context) =>
-                                SeeMedia(
-                                  post: widget.post,
-                                  idUser: userId!,
-                                  avt: avt,
-                                  fullName: fullName,
-                                ))
+                              SeeMedia(
+                                post: widget.post,
+                                idUser: userId!,
+                                avt: avt,
+                                fullName: fullName,
+                              ))
                           );
                         },
                         child: Padding(

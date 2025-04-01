@@ -8,6 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'hand_detector.dart';
+import 'package:camera/camera.dart';
+
 
 const String appId = "bad34fda816e4c31a4d63a6761c653af";
 const String serverUrl = "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
@@ -35,15 +38,24 @@ class _VideoCallState extends State<VideoCall> {
   DateTime? connectedTime;
   int timeout = 15;
   bool hide = false;
-  bool isAISwitchOn = true;
+  bool isAISwitchOn = false;
   bool isBlurEnabled = false;
+  bool isFrontCamera = false;
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+
+
+  late CameraController _cameraController;
+  late List<CameraDescription> cameras;
+  HandDetector handDetector = HandDetector();
+  bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
     _requestPermissions();
     _initializeCall();
+    _initializeCamera();
     _initializeCall().then((_) {
       _checkCallStatus();
     });
@@ -78,7 +90,6 @@ class _VideoCallState extends State<VideoCall> {
   }
 
   Future<void> _requestPermissions() async {
-    // print("🔵 Requesting permissions");
     var statuses = await [Permission.camera, Permission.microphone].request();
     if (statuses[Permission.camera]!.isPermanentlyDenied || statuses[Permission.microphone]!.isPermanentlyDenied) {
       openAppSettings();
@@ -167,77 +178,6 @@ class _VideoCallState extends State<VideoCall> {
     final file = File('${tempDir.path}/cuocgoidi.mp3');
     await file.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
     return file.path;
-  }
-
-  Future<void> _initializeCall() async {
-    setState(() => isLoading = true);
-    String channelName = widget.chatRoomId;
-    int uid = widget.userId.hashCode;
-
-    try {
-      // Lấy token từ server
-      agoraToken = await fetchAgoraToken(channelName, uid);
-      if (agoraToken == null) throw Exception("Không thể lấy token từ server.");
-
-      // Khởi tạo Agora
-      await _initializeAgora(channelName, uid, agoraToken!);
-      await Future.delayed(const Duration(seconds: 1));
-      await _engine!.enableVideo();
-      await _engine!.startPreview();
-
-      print("✅ Cuộc gọi đã khởi tạo thành công");
-    } catch (e) {
-      print("🔴 Lỗi khi khởi tạo cuộc gọi: $e");
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _initializeAgora(String channelName, int uid, String token) async {
-    _engine = createAgoraRtcEngine();
-    await _engine!.initialize(const RtcEngineContext(appId: appId));
-    String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
-    await _engine!.startAudioMixing(
-      filePath: tempFilePath,
-      loopback: true,
-      cycle: 1,
-    );
-    await _engine!.enableAudio();
-    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
-    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
-
-    _engine!.registerEventHandler(RtcEngineEventHandler(
-
-      onUserJoined: (connection, remoteUid, elapsed) async {
-        if (!mounted) return;
-        setState(() {
-          onUserConnected();
-          _remoteUid = remoteUid;
-        });
-        await _engine!.stopAudioMixing();
-        await _engine!.muteLocalAudioStream(false);
-      },
-
-      onUserOffline: (connection, remoteUid, reason) {
-        setState(() => _remoteUid = null);
-        Navigator.pop(context);
-      },
-
-      onAudioMixingStateChanged: (state, reason) {
-      },
-
-      onAudioMixingFinished: () {
-      },
-    ));
-    await _engine!.joinChannel(
-        token: token,
-        channelId: channelName,
-        uid: uid,
-        options: const ChannelMediaOptions()
-    );
-    _waitForRemoteUser();
   }
 
   Future<String?> fetchAgoraToken(String channelName, int uid) async {
@@ -356,28 +296,19 @@ class _VideoCallState extends State<VideoCall> {
     }
   }
 
-  void toggleSpeaker() async {
+  void frontCamera() async {
     try {
       if (_engine == null) {
         print("⚠️ Lỗi: Agora chưa được khởi tạo!");
         return;
       }
-      bool newSpeakerState = !isSpeakerOn;
-      await _engine!.setEnableSpeakerphone(newSpeakerState);
-      await _engine!.setDefaultAudioRouteToSpeakerphone(newSpeakerState);
-
-      if (!newSpeakerState) {
-        await _engine!.adjustPlaybackSignalVolume(0);  // Tắt hẳn âm thanh
-      } else {
-        await _engine!.adjustPlaybackSignalVolume(100); // Bật lại âm thanh
-      }
+      await _engine!.switchCamera();
       setState(() {
-        isSpeakerOn = newSpeakerState;
-        print("🔍 Trạng thái loa: $isSpeakerOn");
+        isFrontCamera = !isFrontCamera;
       });
-      print("🔊 Loa ngoài ${isSpeakerOn ? "BẬT" : "TẮT"}");
+      print("📷 Camera chuyển sang ${isFrontCamera ? "trước" : "sau"}");
     } catch (e) {
-      print("❌ Lỗi khi bật/tắt loa ngoài: $e");
+      print("❌ Lỗi khi đổi camera: $e");
     }
   }
 
@@ -445,6 +376,105 @@ class _VideoCallState extends State<VideoCall> {
     isBlurEnabled = !isBlurEnabled;
   }
 
+  Future<void> _initializeCamera() async {
+    cameras = await availableCameras();
+    _cameraController = CameraController(cameras[1], ResolutionPreset.medium);
+    await _cameraController.initialize();
+    _cameraController.startImageStream(_processCameraImage);
+  }
+
+  Future<void> _processCameraImage(CameraImage image) async {
+    if (!isAISwitchOn || _isProcessing) return;
+
+    _isProcessing = true;
+    try {
+      final tempFile = File('/tmp/temp_image.jpg');
+      await tempFile.writeAsBytes(image.planes[0].bytes);
+
+      bool isFist = await handDetector.detectHandGesture(tempFile);
+      bool shouldExit = handDetector.handleFistGesture(isFist);
+
+      if (shouldExit) {
+        endCall();
+        print("🚀 Đã thoát khỏi video call!");
+      }
+    } catch (e) {
+      print("Lỗi xử lý ảnh: $e");
+    } finally {
+      _isProcessing = false;
+    }
+  }
+
+  Future<void> _initializeCall() async {
+    setState(() => isLoading = true);
+    String channelName = widget.chatRoomId;
+    int uid = widget.userId.hashCode;
+
+    try {
+      // Lấy token từ server
+      agoraToken = await fetchAgoraToken(channelName, uid);
+      if (agoraToken == null) throw Exception("Không thể lấy token từ server.");
+
+      // Khởi tạo Agora
+      await _initializeAgora(channelName, uid, agoraToken!);
+      await Future.delayed(const Duration(seconds: 1));
+      await _engine!.enableVideo();
+      await _engine!.startPreview();
+
+      print("✅ Cuộc gọi đã khởi tạo thành công");
+    } catch (e) {
+      print("🔴 Lỗi khi khởi tạo cuộc gọi: $e");
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _initializeAgora(String channelName, int uid, String token) async {
+    _engine = createAgoraRtcEngine();
+    await _engine!.initialize(const RtcEngineContext(appId: appId));
+    String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
+    await _engine!.startAudioMixing(
+      filePath: tempFilePath,
+      loopback: true,
+      cycle: 1,
+    );
+    await _engine!.enableAudio();
+    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
+    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
+
+    _engine!.registerEventHandler(RtcEngineEventHandler(
+
+      onUserJoined: (connection, remoteUid, elapsed) async {
+        if (!mounted) return;
+        setState(() {
+          onUserConnected();
+          _remoteUid = remoteUid;
+        });
+        await _engine!.stopAudioMixing();
+        await _engine!.muteLocalAudioStream(false);
+      },
+
+      onUserOffline: (connection, remoteUid, reason) {
+        setState(() => _remoteUid = null);
+        Navigator.pop(context);
+      },
+
+      onAudioMixingStateChanged: (state, reason) {
+      },
+
+      onAudioMixingFinished: () {
+      },
+    ));
+    await _engine!.joinChannel(
+        token: token,
+        channelId: channelName,
+        uid: uid,
+        options: const ChannelMediaOptions()
+    );
+    _waitForRemoteUser();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +507,7 @@ class _VideoCallState extends State<VideoCall> {
 
   Widget _buildMyVideoFullScreen() {
     if (_engine == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: SizedBox());
     }
     return AgoraVideoView(
       controller: VideoViewController(
@@ -505,7 +535,7 @@ class _VideoCallState extends State<VideoCall> {
             },
           ),
         ),
-        const Text("AI", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        const Text("Tự động tắt (Nắm tay 3 lần)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -617,9 +647,9 @@ class _VideoCallState extends State<VideoCall> {
               isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
             ),
             if (!hide) _buildControlButton(
-              isSpeakerOn ? Icons.volume_up : Icons.volume_off,
-              toggleSpeaker,
-              isSpeakerOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+              Icons.flip_camera_ios,
+                frontCamera,
+              Colors.green
             ),
             if (!hide) _buildControlButton(Icons.call_end, endCall, Colors.red),
           ],
@@ -640,6 +670,7 @@ class _VideoCallState extends State<VideoCall> {
 
   @override
   void dispose() {
+    _cameraController.dispose();
     _timer?.cancel();
     _engine?.leaveChannel();
     _engine?.release();
