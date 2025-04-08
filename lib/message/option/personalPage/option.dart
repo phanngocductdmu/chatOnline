@@ -528,7 +528,6 @@ class _OptionState extends State<Option> {
               color: Colors.white,
               child: Column(
                 children: [
-                  // Thông tin (Sửa lại từ Expanded thành ElevatedButton)
                   InkWell(
                     onTap: () {
                       Navigator.push(
