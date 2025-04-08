@@ -5,7 +5,6 @@ import 'User/user.dart';
 import 'package:chatonline/discover/discover.dart';
 import 'package:chatonline/diary/diary.dart';
 
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -16,7 +15,6 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // Danh sách các widget cho từng tab
   static const List<Widget> _widgetOptions = <Widget>[
     Mess(),
     DanhBa(),
@@ -36,11 +34,12 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       body: Center(
         child: _widgetOptions
-            .elementAt(_selectedIndex), // Hiển thị widget của tab được chọn
+            .elementAt(_selectedIndex),
       ),
       bottomNavigationBar: Container(
         height: 80,
         child: BottomNavigationBar(
+          backgroundColor: Colors.white, // Màu nền trắng
           currentIndex: _selectedIndex, // Đánh dấu tab hiện tại
           onTap: _onItemTapped, // Hàm gọi khi người dùng nhấn vào tab
           selectedItemColor: Colors.green, // Màu sắc của mục được chọn (xanh)
@@ -53,8 +52,7 @@ class HomePageState extends State<HomePage> {
                 'assets/image/un_message.png',
                 width: 24,
                 height: 24,
-                color:
-                    _selectedIndex == 0 ? Colors.green : Colors.grey, // Đổi màu
+                color: _selectedIndex == 0 ? Colors.green : Colors.grey,
               ),
               label: 'Tin nhắn',
             ),
@@ -63,8 +61,7 @@ class HomePageState extends State<HomePage> {
                 'assets/image/un_danhba.png',
                 width: 24,
                 height: 24,
-                color:
-                    _selectedIndex == 1 ? Colors.green : Colors.grey, // Đổi màu
+                color: _selectedIndex == 1 ? Colors.green : Colors.grey,
               ),
               label: 'Danh bạ',
             ),
@@ -73,8 +70,7 @@ class HomePageState extends State<HomePage> {
                 'assets/image/un_khampha.png',
                 width: 22,
                 height: 22,
-                color:
-                    _selectedIndex == 2 ? Colors.green : Colors.grey, // Đổi màu
+                color: _selectedIndex == 2 ? Colors.green : Colors.grey,
               ),
               label: 'Khám phá',
             ),
@@ -83,8 +79,7 @@ class HomePageState extends State<HomePage> {
                 'assets/image/un_nhatky.png',
                 width: 24,
                 height: 24,
-                color:
-                    _selectedIndex == 3 ? Colors.green : Colors.grey, // Đổi màu
+                color: _selectedIndex == 3 ? Colors.green : Colors.grey,
               ),
               label: 'Nhật ký',
             ),
@@ -92,8 +87,7 @@ class HomePageState extends State<HomePage> {
               icon: Icon(
                 Icons.account_circle,
                 size: 25,
-                color:
-                    _selectedIndex == 4 ? Colors.green : Colors.grey, // Đổi màu
+                color: _selectedIndex == 4 ? Colors.green : Colors.grey,
               ),
               label: 'Cá nhân',
             ),

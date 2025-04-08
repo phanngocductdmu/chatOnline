@@ -57,7 +57,6 @@ class _DaNhanViewState extends State<DaNhanView> {
   }
 
   void _acceptInvitation(String id, String idUser, String idFriend) {
-    final DatabaseReference _database = FirebaseDatabase.instance.ref();
     _database.child("friendInvitation").child(id).remove().then((_) {
       _database.child("friends").child(idUser).child(idFriend).set(true);
       _database.child("friends").child(idFriend).child(idUser).set(true);
@@ -81,7 +80,7 @@ class _DaNhanViewState extends State<DaNhanView> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã chấp nhận lời mời và tạo phòng chat')),
+        const SnackBar(content: Text('Đã chấp nhận lời mời')),
       );
     }).catchError((error) {
       ScaffoldMessenger.of(context).showSnackBar(

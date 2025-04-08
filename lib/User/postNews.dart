@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class PostScreen extends StatefulWidget {
   const PostScreen({super.key});
@@ -19,6 +21,7 @@ class PostScreenState extends State<PostScreen> {
   String _privacy = "Tất cả bạn bè";
   String? idUser;
   String? _mediaType ;
+  String? caption;
 
   @override
   void initState() {
@@ -105,7 +108,11 @@ class PostScreenState extends State<PostScreen> {
       UploadTask uploadTask = ref.putFile(file);
 
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        double progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        // Ensure totalBytes is not zero to avoid NaN or Infinity
+        double progress = 0.0;
+        if (snapshot.totalBytes > 0) {
+          progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        }
         print("Đang tải $_mediaType: ${progress.toStringAsFixed(2)}%");
       });
 
@@ -199,6 +206,87 @@ class PostScreenState extends State<PostScreen> {
     );
   }
 
+
+
+  Future<void> generateCaption(File imageFile) async {
+    String apiKey = "431ac9fa58bc4d2ba6cb363b274ccda1";
+    setState(() {
+      _postController.text = 'Đang tạo caption...';
+    });
+
+    List<int> imageBytes = await imageFile.readAsBytes();
+    String base64Image = base64Encode(imageBytes);
+
+    const String apiUrl = 'https://api.clarifai.com/v2/models/general-image-recognition/outputs';
+
+    try {
+      var response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Key $apiKey",
+        },
+        body: jsonEncode({
+          'inputs': [
+            {
+              'data': {
+                'image': {
+                  'base64': base64Image,
+                }
+              }
+            }
+          ],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        var responseData = jsonDecode(response.body);
+        print('Response: $responseData');
+
+        String caption = responseData['outputs'][0]['data']['concepts'][0]['name'] ?? 'Không có mô tả';
+        setState(() {
+          _postController.text = caption;
+        });
+      } else {
+        setState(() {
+          _postController.text = 'Lỗi: ${response.statusCode} - ${response.body}';
+        });
+        print('Lỗi: ${response.statusCode} - ${response.body}');
+      }
+
+    } catch (e) {
+      setState(() {
+        _postController.text = 'Đã xảy ra lỗi: $e';
+      });
+      print("Lỗi xảy ra: $e");
+    }
+  }
+
+
+// Chọn hình ảnh từ thư viện
+  Future<void> _pickImageAndGenerateCaption() async {
+    // Kiểm tra nếu _selectedMedia đã có giá trị thì không mở thư mục
+    if (_selectedMedia != null) {
+      // Nếu đã có ảnh, chỉ cần tiếp tục tạo caption
+      File imageFile = File(_selectedMedia!.path);
+      generateCaption(imageFile);
+      return;
+    }
+
+    // Nếu chưa có ảnh, mở thư mục chọn ảnh
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedMedia = pickedFile;
+      });
+
+      File imageFile = File(pickedFile.path);
+      generateCaption(imageFile);
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -238,7 +326,7 @@ class PostScreenState extends State<PostScreen> {
               _selectedMedia != null
                   ? SizedBox()
                   : SizedBox(
-                width: double.infinity,
+                width: MediaQuery.of(context).size.width,
                 child: Material(
                   elevation: 1,
                   borderRadius: BorderRadius.circular(10),
@@ -289,9 +377,8 @@ class PostScreenState extends State<PostScreen> {
                       borderRadius: BorderRadius.circular(10),
                       child: Image.file(
                         File(_selectedMedia!.path),
-                        width: double.infinity,
-                        height: 150,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.fitWidth, // Hoặc BoxFit.scaleDown
+                        width: MediaQuery.of(context).size.width,
                       ),
                     ),
                     Positioned(
@@ -311,8 +398,26 @@ class PostScreenState extends State<PostScreen> {
                   ],
                 ),
                 SizedBox(height: 10),
+                GestureDetector(
+                  onTap: _pickImageAndGenerateCaption,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      "Sử dụng Al tạo caption",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
                 SizedBox(
-                  width: double.infinity,
+                  width: MediaQuery.of(context).size.width,
                   child: TextField(
                     controller: _postController,
                     decoration: InputDecoration(

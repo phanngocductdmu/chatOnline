@@ -18,6 +18,7 @@ class MessageInput extends StatefulWidget {
   final Map<String, dynamic>? selectedReplyMessage;
   final Function()? onClearReply;
   final bool isFriend;
+  final String nickName;
 
   const MessageInput({
     super.key,
@@ -26,7 +27,8 @@ class MessageInput extends StatefulWidget {
     required this.selectedReplyMessage,
     required this.onClearReply,
     required this.isFriend,
-    required this.idFriend
+    required this.idFriend,
+    required this.nickName
   });
   @override
   MessageInputState createState() => MessageInputState();
@@ -43,27 +45,30 @@ class MessageInputState extends State<MessageInput> {
   double _uploadProgress = 0.0;
   bool _isUploading = false;
   Map<String, dynamic>? selectedReplyMessage;
+  bool isMessageBlocked = false;
+  bool isMessageBlockedMe = false;
 
   @override
   void initState() {
     super.initState();
-    _updateUserChatStatus(true, widget.chatRoomId);
+    _updateUserChatStatus(widget.chatRoomId);
     _loadStickers();
+    _checkBlockStatus();
+    _checkBlockStatusMe();
   }
 
   @override
   void dispose() {
-    _updateUserChatStatus(false, widget.chatRoomId);
-    _setTypingStatus(false);
+    _updateUserChatStatus(widget.chatRoomId);
+      _setTypingStatus(false);
     _controller.dispose();
     _typingTimer?.cancel();
     super.dispose();
   }
 
-  void _updateUserChatStatus(bool isInChat, String chatRoomId) {
+  void _updateUserChatStatus(String chatRoomId) {
     _database.child('users/${widget.senderId}').update({
-      'inChatRoom': isInChat,
-      'chatRoomId': isInChat ? chatRoomId : null,
+      'inChatRoom': chatRoomId,
     });
   }
 
@@ -81,35 +86,71 @@ class MessageInputState extends State<MessageInput> {
     }
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final receiverId = await _getReceiverId();
-    if (receiverId == null) {
-      return;
+    if(widget.chatRoomId.isNotEmpty){
+      if (receiverId == null) {
+        return;
+      }
     }
+    String chatRoomId = widget.chatRoomId.isNotEmpty ? widget.chatRoomId : widget.senderId +'_'+ widget.idFriend;
     final snapshot = await _database.child('users/$receiverId/status/online').get();
     final isReceiverOnline = snapshot.exists && snapshot.value == true;
     final newStatus = isReceiverOnline ? 'Đã nhận' : 'Đã gửi';
     bool isLink = isValidURL(message);
     String displayMessage = _getDisplayMessage(typeChat, message, isLink);
-    final messageData = {
-      'text': message,
-      'senderId': widget.senderId,
-      'timestamp': timestamp,
-      'typeChat': isLink ? 'link' : typeChat,
-      'status': newStatus,
-      'urlFile': urlFile,
-    };
-    if (replyMessage != null && replyMessage['id'] != null && replyMessage['id'] is String) {
-      messageData['replyTo'] = replyMessage['id'];
-      messageData['replyText'] = replyMessage['text'] ?? 'Không có tin nhắn';
-    } else {
 
+    if(isMessageBlockedMe){
+      final messageData = {
+        'text': message,
+        'senderId': widget.senderId,
+        'timestamp': timestamp,
+        'typeChat': 'block',
+        'status': newStatus,
+        'urlFile': urlFile,
+        'hiddenBy': widget.idFriend,
+      };
+      // Nếu có tin nhắn trả lời
+      if (replyMessage != null && replyMessage['id'] != null && replyMessage['id'] is String) {
+        messageData['replyTo'] = replyMessage['id'];
+        messageData['replyText'] = replyMessage['text'] ?? 'Không có tin nhắn';
+      }
+      // Ghi dữ liệu vào Firebase
+      if(widget.chatRoomId.isEmpty){
+        await _database.child('chats/$chatRoomId/messages').push().set(messageData);
+      } else {
+        await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+      }
     }
-    await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
-    _sendLastMessege(displayMessage, timestamp, newStatus);
+    else{
+      final messageData = {
+        'text': message,
+        'senderId': widget.senderId,
+        'timestamp': timestamp,
+        'typeChat': isLink ? 'link' : typeChat,
+        'status': newStatus,
+        'urlFile': urlFile,
+      };
+      if (replyMessage != null && replyMessage['id'] != null && replyMessage['id'] is String) {
+        messageData['replyTo'] = replyMessage['id'];
+        messageData['replyText'] = replyMessage['text'] ?? 'Không có tin nhắn';
+      }
+      if(widget.chatRoomId.isEmpty){
+        await _database.child('chats/$chatRoomId/messages').push().set(messageData);
+      }else{
+        await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+      }
+    }
+
+    if(!isMessageBlockedMe){
+      _sendLastMessage(displayMessage, timestamp, newStatus);
+    }
+
     setState(() {
       _isTyping = false;
       selectedReplyMessage = null;
     });
-    _setTypingStatus(false);
+    if(widget.isFriend){
+      _setTypingStatus(false);
+    }
   }
 
   String _getDisplayMessage(String typeChat, String message, bool isLink) {
@@ -133,18 +174,47 @@ class MessageInputState extends State<MessageInput> {
     return isURL(text);
   }
 
-  void _sendLastMessege(String message, final timestamp, String newStatus ) async{
-    if (message.isEmpty) return;
-    await _database.child('chatRooms/${widget.chatRoomId}').update({
-      'lastMessage': message,
-      'lastMessageTime': timestamp,
-      'status': newStatus,
-      'senderId': widget.senderId,
-    });
+  void _sendLastMessage(String message, final timestamp, String newStatus ) async{
+    if (widget.chatRoomId.isEmpty){
+      String chatRoomId = widget.chatRoomId.isNotEmpty ? widget.chatRoomId : widget.senderId + '_'+ widget.idFriend;
+      DatabaseReference chatRoomRef = _database.child('chatRooms/$chatRoomId');
+      DataSnapshot snapshot = await chatRoomRef.get();
+      bool chatRoomExists = snapshot.exists;
+      if (!chatRoomExists) {
+        await chatRoomRef.set({
+          'createdAt': timestamp,
+          'lastMessage': message,
+          'lastMessageTime': timestamp,
+          'status': newStatus,
+          'senderId': widget.senderId,
+          'typeRoom': false,
+        });
+        await chatRoomRef.child('members').set({
+          widget.senderId: true,
+          widget.idFriend: true,
+        });
+      }else{
+        await _database.child('chatRooms/$chatRoomId').update({
+          'lastMessage': message,
+          'lastMessageTime': timestamp,
+          'status': newStatus,
+          'senderId': widget.senderId,
+        });
+      }
+    }else{
+      await _database.child('chatRooms/${widget.chatRoomId}').update({
+        'lastMessage': message,
+        'lastMessageTime': timestamp,
+        'status': newStatus,
+        'senderId': widget.senderId,
+      });
+    }
   }
 
   void _setTypingStatus(bool isTyping) {
-    _database.child('typingStatus/${widget.chatRoomId}/${widget.senderId}').set(isTyping);
+    if(widget.isFriend){
+      _database.child('typingStatus/${widget.chatRoomId}/${widget.senderId}').set(isTyping);
+    }
   }
 
   void _onTextChanged(String text) {
@@ -474,7 +544,7 @@ class MessageInputState extends State<MessageInput> {
         final fileName = "audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
         final uploadTask = await _storage.ref('audio/$fileName').putFile(file);
         final downloadUrl = await uploadTask.ref.getDownloadURL();
-         _sendMessage('audio', 'ghi âm', downloadUrl, null);
+        _sendMessage('audio', 'ghi âm', downloadUrl, null);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Gửi thành công!")),
@@ -577,16 +647,89 @@ class MessageInputState extends State<MessageInput> {
     );
   }
 
+  void _checkBlockStatusMe() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.idFriend)
+        .child(widget.senderId);
+    DatabaseEvent event = await blockRef.once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      final data = snapshot.value as Map?;
+      if (data != null) {
+        setState(() {
+          isMessageBlockedMe = data['blockMessages'] ?? false;
+        });
+      }
+    }
+  }
+
+  void _checkBlockStatus() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.senderId)
+        .child(widget.idFriend);
+    DatabaseEvent event = await blockRef.once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      final data = snapshot.value as Map?;
+      if (data != null) {
+        setState(() {
+          isMessageBlocked = data['blockMessages'] ?? false;
+        });
+      }
+    }
+  }
+
+  void _unblockMessages() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.senderId)
+        .child(widget.idFriend);
+
+    await blockRef.update({'blockMessages': false});
+    setState(() {
+      isMessageBlocked = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (_isUploading) _buildUploadProgress(),
-        _buildReplyMessage(),
-        _buildMessageInput(),
+        if (isMessageBlocked) ...[
+          Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Column(
+              children: [
+                Text("Bạn đã chặn tin nhắn", style: TextStyle(color: Colors.black)),
+                SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _unblockMessages,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[200],
+                    ),
+                    child: Text("Bỏ chặn", style: TextStyle(color: Colors.green)),
+                  ),
+                )
+              ],
+            ),
+          )
+        ]
+        else ...[
+          if (_isUploading) _buildUploadProgress(),
+          _buildReplyMessage(),
+          _buildMessageInput(),
+        ],
       ],
     );
   }
+
 
   Widget _buildUploadProgress() {
     return Column(

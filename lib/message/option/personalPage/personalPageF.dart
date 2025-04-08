@@ -31,12 +31,31 @@ class _PersonalPageState extends State<PersonalPage> {
   Map<String, dynamic>? userData;
   bool isBlockLogs = false;
   bool isHideDiary = false;
+  bool isMessageBlocked = false;
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
-    checkBlockLogsStatus();
+    _checkBlockStatus();
+  }
+
+  void _checkBlockStatus() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.idFriend)
+        .child(widget.idUser);
+    DatabaseEvent event = await blockRef.once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      final data = snapshot.value as Map?;
+      if (data != null) {
+        setState(() {
+          isMessageBlocked = data['blockAndHideLogs'] ?? false;
+        });
+      }
+    }
   }
 
   Stream<Map<String, dynamic>> fetchUserPosts() {
@@ -122,21 +141,6 @@ class _PersonalPageState extends State<PersonalPage> {
     });
   }
 
-  void checkBlockLogsStatus() async {
-    DatabaseReference ref = FirebaseDatabase.instance.ref("BlockLogs/${widget.idUser}/${widget.idFriend}");
-    ref.onValue.listen((event) {
-      if (event.snapshot.exists && event.snapshot.value != null) {
-        setState(() {
-          isBlockLogs = event.snapshot.value as bool;
-        });
-      } else {
-        setState(() {
-          isBlockLogs = false;
-        });
-      }
-    });
-  }
-
   void checkHideDiaryStatus() async {
     DatabaseReference ref = FirebaseDatabase.instance.ref("HideDiary/${widget.idUser}/${widget.idFriend}");
     ref.onValue.listen((event) {
@@ -163,7 +167,6 @@ class _PersonalPageState extends State<PersonalPage> {
   }
 
   void _openUserSettingsBottomSheet(BuildContext context) {
-    checkBlockLogsStatus();
     checkHideDiaryStatus();
     showModalBottomSheet(
       context: context,
@@ -401,7 +404,11 @@ class _PersonalPageState extends State<PersonalPage> {
                 const SizedBox(height: 10),
                 !(widget.isFriend ?? false) ? _buildAction() : _buildActionButtons(),
                 const SizedBox(height: 10),
-                !(widget.isFriend ?? false) ? SizedBox() : _buildUserPosts(userData),
+                isMessageBlocked
+                    ? SizedBox()
+                    : !(widget.isFriend ?? false)
+                    ? SizedBox()
+                    : _buildUserPosts(userData),
               ],
             ),
           );

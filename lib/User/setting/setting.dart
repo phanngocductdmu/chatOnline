@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chatonline/Search/TimKiem.dart';
+import 'package:chatonline/Login.dart';
 
 class Setting extends StatefulWidget {
   const Setting({super.key});
@@ -25,6 +26,46 @@ class _SettingState extends State<Setting> with SingleTickerProviderStateMixin {
     setState(() {
       idUser = prefs.getString('userId');
     });
+  }
+
+  void confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text("Xác nhận"),
+          content: Text("Bạn có chắc chắn muốn đăng xuất không?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text("Hủy",
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                logout(context);
+              },
+              child: Text(
+                "Đăng xuất",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void logout(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+          (route) => false,
+    );
   }
 
   @override
@@ -88,9 +129,8 @@ class _SettingState extends State<Setting> with SingleTickerProviderStateMixin {
       {
         "title": "Đăng xuất",
         "icon": Icons.exit_to_app,
-        "action": () => print("Đăng xuất"),
+        "action": () => confirmLogout(context),
       },
-
     ];
 
     return GestureDetector(
@@ -165,6 +205,7 @@ class _SettingState extends State<Setting> with SingleTickerProviderStateMixin {
     );
   }
 
+  /// Widget hiển thị từng mục cài đặt
   Widget setting({required String title, required IconData icon, required Function() onTap}) {
     return GestureDetector(
       onTap: onTap,

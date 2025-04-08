@@ -3,23 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'HomePage.dart';
 import 'package:chatonline/firebase/auth_service.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
-    );
-  }
-}
+import 'package:chatonline/main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -76,7 +60,6 @@ class _MyHomePageState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Kiểm tra nếu email và password đã được nhập
     bool isInputValid =
         _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty;
 
@@ -94,7 +77,7 @@ class _MyHomePageState extends State<LoginScreen> {
               child: IconButton(
                 icon: Icon(Icons.arrow_back),
                 onPressed: () {
-                  Navigator.pop(context); // Quay lại màn hình trước đó
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => MyApp(),));
                 },
               ),
             ),

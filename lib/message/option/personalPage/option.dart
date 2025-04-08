@@ -196,7 +196,7 @@ class _OptionState extends State<Option> {
       },
     );
 
-    if (!confirmDelete) return; // Nếu chọn hủy thì không xóa
+    if (!confirmDelete) return;
 
     DatabaseReference userFriendsRef =
     FirebaseDatabase.instance.ref().child('friends').child(idUser);
@@ -580,7 +580,7 @@ class _OptionState extends State<Option> {
                   const Divider(
                     thickness: 1,
                     height: 1,
-                    color: Color(0xFFF3F4F6), // Màu xám nhạt theo mã hex
+                    color: Color(0xFFF3F4F6),
                   ),
                 ],
               ),

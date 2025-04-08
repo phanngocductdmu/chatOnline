@@ -4,10 +4,12 @@ import 'package:chatonline/message/option/personalPage/personalPageF.dart';
 import 'package:chatonline/message/option/personalPage/changeNickname.dart';
 import 'package:chatonline/message/option/chatMedia.dart';
 import 'package:chatonline/message/option/CreateGroup.dart';
+import 'package:chatonline/message/option/personalPage/ReportUser.dart';
 
 class OptionMessage extends StatefulWidget {
   final String idFriend, idChatRoom, nickName, idUser, avt;
   final Function(bool) onSearchToggle;
+  final bool isFriend;
 
   const OptionMessage({
     super.key,
@@ -17,6 +19,7 @@ class OptionMessage extends StatefulWidget {
     required this.nickName,
     required this.idUser,
     required this.avt,
+    required this.isFriend,
   });
 
   @override
@@ -202,6 +205,157 @@ class _OptionMessageState extends State<OptionMessage> {
     return imageUrls;
   }
 
+  void showBlockBottomSheet(BuildContext context) {
+    bool blockMessages = false;
+    bool blockCalls = false;
+    bool blockAndHideLogs = false;
+    bool isLoading = true;
+
+    // Thêm các biến để lưu trạng thái ban đầu từ Firebase
+    bool initialBlockMessages = false;
+    bool initialBlockCalls = false;
+    bool initialBlockAndHideLogs = false;
+
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            if (isLoading) {
+              FirebaseDatabase.instance
+                  .ref()
+                  .child('blockList')
+                  .child(widget.idUser)
+                  .child(widget.idFriend)
+                  .once()
+                  .then((DatabaseEvent event) {
+                final data = event.snapshot.value as Map?;
+                if (data != null) {
+                  initialBlockMessages = data['blockMessages'] ?? false;
+                  initialBlockCalls = data['blockCalls'] ?? false;
+                  initialBlockAndHideLogs = data['blockAndHideLogs'] ?? false;
+
+                  blockMessages = initialBlockMessages;
+                  blockCalls = initialBlockCalls;
+                  blockAndHideLogs = initialBlockAndHideLogs;
+                }
+                setState(() {
+                  isLoading = false;
+                });
+              });
+            }
+
+            // So sánh với trạng thái ban đầu
+            bool hasChanged =
+                blockMessages != initialBlockMessages ||
+                    blockCalls != initialBlockCalls ||
+                    blockAndHideLogs != initialBlockAndHideLogs;
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+              child: isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    "Quản lý chặn ${widget.nickName}",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Divider(),
+                  CheckboxListTile(
+                    value: blockMessages,
+                    onChanged: (value) {
+                      setState(() {
+                        blockMessages = value!;
+                      });
+                    },
+                    activeColor: Colors.green,
+                    title: Text('Chặn tin nhắn'),
+                    secondary: Icon(Icons.message, color: Color(0xFF7B848D)),
+                  ),
+                  CheckboxListTile(
+                    value: blockCalls,
+                    onChanged: (value) {
+                      setState(() {
+                        blockCalls = value!;
+                      });
+                    },
+                    activeColor: Colors.green,
+                    title: Text('Chặn cuộc gọi'),
+                    secondary: Icon(Icons.call, color: Color(0xFF7B848D)),
+                  ),
+                  CheckboxListTile(
+                    value: blockAndHideLogs,
+                    onChanged: (value) {
+                      setState(() {
+                        blockAndHideLogs = value!;
+                      });
+                    },
+                    activeColor: Colors.green,
+                    title: Text('Chặn và ẩn nhật ký'),
+                    secondary: Icon(Icons.visibility_off, color: Color(0xFF7B848D)),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: hasChanged
+                        ? () async {
+                      Navigator.pop(context);
+                      DatabaseReference blockRef =
+                      FirebaseDatabase.instance
+                          .ref()
+                          .child('blockList')
+                          .child(widget.idUser)
+                          .child(widget.idFriend);
+
+                      await blockRef.set({
+                        'blockMessages': blockMessages,
+                        'blockCalls': blockCalls,
+                        'blockAndHideLogs': blockAndHideLogs,
+                      });
+                    }
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      backgroundColor:
+                      hasChanged ? Colors.green : Colors.grey,
+                    ),
+                    child: Text(
+                      'Áp dụng',
+                      style: TextStyle(
+                        color: hasChanged ? Colors.white : Colors.grey,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -276,7 +430,7 @@ class _OptionMessageState extends State<OptionMessage> {
                                 nickName: widget.nickName,
                                 idUser: widget.idUser,
                                 avt: widget.avt,
-                                isFriend: true,
+                                isFriend: widget.isFriend,
                               )),
                         );
                       }),
@@ -549,10 +703,19 @@ class _OptionMessageState extends State<OptionMessage> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.report, color: Color(0xFF7B848D)), // Màu mới
+                    leading: Icon(Icons.report, color: Color(0xFF7B848D)),
                     title: Text('Báo xấu', style: TextStyle(color: Colors.black)),
                     onTap: () {
-                      // Xử lý báo xấu
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReportUserScreen(
+                            idUser: widget.idUser,
+                            idFriend: widget.idFriend,
+                            type: "account report",
+                          ),
+                        ),
+                      );
                     },
                   ),
                   Divider(thickness: 1, color: Colors.black12, indent: 56), // Thụt vào ngang với text
@@ -562,10 +725,10 @@ class _OptionMessageState extends State<OptionMessage> {
                     title: Text('Quản lý chặn'),
                     trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
                     onTap: () {
-                      // Chuyển đến trang quản lý chặn
+                      showBlockBottomSheet(context);
                     },
                   ),
-                  Divider(thickness: 1, color: Colors.black12, indent: 56), // Thụt vào ngang với text
+                  Divider(thickness: 1, color: Colors.black12, indent: 56),
 
                   ListTile(
                     leading: Icon(Icons.delete_forever, color: Color(0xFF7B848D)), // Màu mới

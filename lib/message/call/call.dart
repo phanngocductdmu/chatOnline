@@ -10,7 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 const String appId = "bad34fda816e4c31a4d63a6761c653af";
-const String serverUrl = "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
+const String serverUrl =
+    "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
 
 class Call extends StatefulWidget {
   final String chatRoomId, idFriend, avt, fullName, userId;
@@ -95,18 +96,22 @@ class _CallState extends State<Call> {
   }
 
   Future<String?> _getReceiverId() async {
-    final snapshot = await _database.child('chatRooms/${widget.chatRoomId}/members').get();
+    final snapshot =
+        await _database.child('chatRooms/${widget.chatRoomId}/members').get();
     if (snapshot.exists && snapshot.value is Map) {
-      return (snapshot.value as Map).keys.firstWhere((id) => id != widget.userId, orElse: () => null);
+      return (snapshot.value as Map)
+          .keys
+          .firstWhere((id) => id != widget.userId, orElse: () => null);
     }
     return null;
   }
 
-  void _sendMessage(String statusS,  String idUser) async {
+  void _sendMessage(String statusS, String idUser) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final receiverId = await _getReceiverId();
     if (receiverId == null) return;
-    final snapshot = await _database.child('users/$receiverId/status/online').get();
+    final snapshot =
+        await _database.child('users/$receiverId/status/online').get();
     final isReceiverOnline = snapshot.exists && snapshot.value == true;
     final newStatus = isReceiverOnline ? 'Đã nhận' : 'Đã gửi';
     final messageData = {
@@ -118,7 +123,10 @@ class _CallState extends State<Call> {
       'statuss': statusS,
       'totalTime': _formatDurationFirebase(callDuration),
     };
-    await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+    await _database
+        .child('chats/${widget.chatRoomId}/messages')
+        .push()
+        .set(messageData);
     await _database.child('chatRooms/${widget.chatRoomId}').update({
       'lastMessage': 'Cuộc gọi đến',
       'lastMessageTime': timestamp,
@@ -184,17 +192,21 @@ class _CallState extends State<Call> {
     String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
     await _engine!.startAudioMixing(
       filePath: tempFilePath,
-      loopback: false,  // ⚠️ Đảm bảo chỉ phát cho người gọi, không phát lại vào mic
-      cycle: -1,        // 🔄 Lặp vô hạn cho nhạc chuông
+      loopback:
+          false, // ⚠️ Đảm bảo chỉ phát cho người gọi, không phát lại vào mic
+      cycle: -1, // 🔄 Lặp vô hạn cho nhạc chuông
     );
 
     await _engine!.enableAudio();
-    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
-    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
+    await _engine!
+        .setChannelProfile(ChannelProfileType.channelProfileCommunication);
+    await _engine!.setupLocalVideo(
+        const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
 
     _engine!.registerEventHandler(
       RtcEngineEventHandler(
-        onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) async {
+        onUserJoined:
+            (RtcConnection connection, int remoteUid, int elapsed) async {
           setState(() {
             onUserConnected();
             _remoteUid = remoteUid;
@@ -208,7 +220,8 @@ class _CallState extends State<Call> {
             await _engine!.stopAudioMixing();
           }
         },
-        onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+        onUserOffline: (RtcConnection connection, int remoteUid,
+            UserOfflineReasonType reason) {
           setState(() {
             _remoteUid = null;
           });
@@ -259,9 +272,11 @@ class _CallState extends State<Call> {
     DatabaseReference ref = FirebaseDatabase.instance.ref("calls");
 
     try {
-      DatabaseEvent event = await ref.orderByChild("channelName").equalTo(channelName).once();
+      DatabaseEvent event =
+          await ref.orderByChild("channelName").equalTo(channelName).once();
       if (event.snapshot.value != null) {
-        Map<dynamic, dynamic> calls = event.snapshot.value as Map<dynamic, dynamic>;
+        Map<dynamic, dynamic> calls =
+            event.snapshot.value as Map<dynamic, dynamic>;
         calls.forEach((key, value) async {
           await ref.child(key).update({"status": "missed"});
         });
@@ -306,7 +321,7 @@ class _CallState extends State<Call> {
       await _engine!.setDefaultAudioRouteToSpeakerphone(newSpeakerState);
 
       if (!newSpeakerState) {
-        await _engine!.adjustPlaybackSignalVolume(0);  // Tắt hẳn âm thanh
+        await _engine!.adjustPlaybackSignalVolume(0); // Tắt hẳn âm thanh
       } else {
         await _engine!.adjustPlaybackSignalVolume(100); // Bật lại âm thanh
       }
@@ -323,7 +338,9 @@ class _CallState extends State<Call> {
   void checkMissedCall() {
     Future.delayed(Duration(seconds: 30), () async {
       if (_remoteUid == null) {
-        await FirebaseDatabase.instance.ref("calls").orderByChild('channelName')
+        await FirebaseDatabase.instance
+            .ref("calls")
+            .orderByChild('channelName')
             .equalTo(widget.chatRoomId)
             .once()
             .then((DatabaseEvent event) {
@@ -331,7 +348,9 @@ class _CallState extends State<Call> {
             Map<dynamic, dynamic> calls = event.snapshot.value as Map;
             calls.forEach((key, value) async {
               if (value['status'] == 'Đang gọi...') {
-                await FirebaseDatabase.instance.ref("calls/$key").update({'status': 'missed'});
+                await FirebaseDatabase.instance
+                    .ref("calls/$key")
+                    .update({'status': 'missed'});
                 if (mounted) Navigator.pop(context);
               }
             });
@@ -375,10 +394,14 @@ class _CallState extends State<Call> {
   void endCall() async {
     try {
       DatabaseReference callsRef = FirebaseDatabase.instance.ref("calls");
-      DatabaseEvent event = await callsRef.orderByChild('channelName').equalTo(widget.chatRoomId).once();
+      DatabaseEvent event = await callsRef
+          .orderByChild('channelName')
+          .equalTo(widget.chatRoomId)
+          .once();
       if (event.snapshot.exists) {
         for (var child in event.snapshot.children) {
-          Map<dynamic, dynamic>? callData = child.value as Map<dynamic, dynamic>?;
+          Map<dynamic, dynamic>? callData =
+              child.value as Map<dynamic, dynamic>?;
           if (callData != null) {
             String myID = callData['myID'] ?? '';
             if (_remoteUid == null) {

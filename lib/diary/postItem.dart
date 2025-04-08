@@ -36,7 +36,8 @@ class PostItemState extends State<PostItem> {
   }
 
   void toggleLike(String postId, String userId, bool isLiked) {
-    DatabaseReference likeRef = FirebaseDatabase.instance.ref("posts/$postId/likes/$userId");
+    DatabaseReference likeRef =
+        FirebaseDatabase.instance.ref("posts/$postId/likes/$userId");
     if (isLiked) {
       likeRef.remove();
     } else {
@@ -45,9 +46,8 @@ class PostItemState extends State<PostItem> {
   }
 
   Future<int> getTotalCommentsAndReplies(String postId) async {
-    final commentsSnapshot = await FirebaseDatabase.instance
-        .ref('posts/$postId/comments')
-        .get();
+    final commentsSnapshot =
+        await FirebaseDatabase.instance.ref('posts/$postId/comments').get();
 
     if (!commentsSnapshot.exists) return 0;
 
@@ -85,7 +85,10 @@ class PostItemState extends State<PostItem> {
               const Center(
                 child: Text(
                   "Báo Xấu",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
                 ),
               ),
               const Padding(
@@ -101,12 +104,18 @@ class PostItemState extends State<PostItem> {
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.flag, color: Colors.grey),
-                title: const Text("Báo xấu", style: TextStyle(color: Colors.black)),
+                title: const Text("Báo xấu",
+                    style: TextStyle(color: Colors.black)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ReportUserScreen(idFriend: idFriend, idUser: idUser, type: "posts report",)),
+                    MaterialPageRoute(
+                        builder: (context) => ReportUserScreen(
+                              idFriend: idFriend,
+                              idUser: idUser,
+                              type: "posts report",
+                            )),
                   );
                 },
               ),
@@ -169,7 +178,6 @@ class PostItemState extends State<PostItem> {
 
   void editPrivacy(BuildContext context, String postId, String currentPrivacy) {
     DatabaseReference postRef = FirebaseDatabase.instance.ref("posts/$postId");
-
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -186,10 +194,14 @@ class PostItemState extends State<PostItem> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _privacyOption(context, postRef, postId, "Tất cả bạn bè", Icons.public, currentPrivacy),
-              _privacyOption(context, postRef, postId, "Chỉ mình tôi", Icons.lock, currentPrivacy),
-              _privacyOption(context, postRef, postId, "Bạn bè ngoại trừ", Icons.people_outline, currentPrivacy),
-              _privacyOption(context, postRef, postId, "Bạn bè trong nhóm", Icons.group, currentPrivacy),
+              _privacyOption(context, postRef, postId, "Tất cả bạn bè",
+                  Icons.public, currentPrivacy),
+              _privacyOption(context, postRef, postId, "Chỉ mình tôi",
+                  Icons.lock, currentPrivacy),
+              _privacyOption(context, postRef, postId, "Bạn bè ngoại trừ",
+                  Icons.people_outline, currentPrivacy),
+              _privacyOption(context, postRef, postId, "Bạn bè trong nhóm",
+                  Icons.group, currentPrivacy),
             ],
           ),
         );
@@ -201,7 +213,9 @@ class PostItemState extends State<PostItem> {
     return ListTile(
       leading: Icon(icon, color: Colors.grey[400]),
       title: Text(privacy),
-      trailing: currentPrivacy == privacy ? Icon(Icons.check, color: Colors.green) : null,
+      trailing: currentPrivacy == privacy
+          ? Icon(Icons.check, color: Colors.green)
+          : null,
       onTap: () {
         postRef.update({"privacy": privacy}).then((_) {
           Navigator.pop(context);
@@ -215,12 +229,14 @@ class PostItemState extends State<PostItem> {
   }
 
   void editPost(BuildContext context, String postId, String currentText, String currentFileUrl) async {
-    TextEditingController textController = TextEditingController(text: currentText);
+    TextEditingController textController =
+        TextEditingController(text: currentText);
     XFile? pickedImage;
     final ImagePicker _picker = ImagePicker();
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
@@ -236,22 +252,27 @@ class PostItemState extends State<PostItem> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("Chỉnh sửa bài đăng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text("Chỉnh sửa bài đăng",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     TextField(
                       controller: textController,
                       maxLines: 3,
-                      decoration: InputDecoration(hintText: "Nhập nội dung mới...", border: OutlineInputBorder()),
+                      decoration: InputDecoration(
+                          hintText: "Nhập nội dung mới...",
+                          border: OutlineInputBorder()),
                     ),
                     SizedBox(height: 10),
                     pickedImage != null
                         ? Image.file(File(pickedImage!.path), height: 200)
                         : (currentFileUrl.isNotEmpty
-                        ? Image.network(currentFileUrl, height: 200)
-                        : Container()),
+                            ? Image.network(currentFileUrl, height: 200)
+                            : Container()),
                     SizedBox(height: 10),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final image = await _picker.pickImage(source: ImageSource.gallery);
+                        final image = await _picker.pickImage(
+                            source: ImageSource.gallery);
                         if (image != null) {
                           setState(() {
                             pickedImage = image;
@@ -268,10 +289,12 @@ class PostItemState extends State<PostItem> {
                         String newFileUrl = currentFileUrl;
 
                         if (pickedImage != null) {
-                          newFileUrl = await uploadImageToFirebase(pickedImage!, postId);
+                          newFileUrl =
+                              await uploadImageToFirebase(pickedImage!, postId);
                         }
 
-                        updatePostInFirebase(context, postId, newText, newFileUrl);
+                        updatePostInFirebase(
+                            context, postId, newText, newFileUrl);
                       },
                       child: Text("Lưu chỉnh sửa"),
                     ),
@@ -286,7 +309,8 @@ class PostItemState extends State<PostItem> {
   }
 
   Future<String> uploadImageToFirebase(XFile image, String postId) async {
-    Reference storageRef = FirebaseStorage.instance.ref().child("posts/$postId.jpg");
+    Reference storageRef =
+        FirebaseStorage.instance.ref().child("posts/$postId.jpg");
     await storageRef.putFile(File(image.path));
     return await storageRef.getDownloadURL();
   }
@@ -327,10 +351,9 @@ class PostItemState extends State<PostItem> {
             onPressed: () {
               Navigator.pop(context);
 
-              DatabaseReference postRef = FirebaseDatabase.instance.ref("posts/$postId");
-              postRef.remove().then((_) {
-
-              }).catchError((error) {
+              DatabaseReference postRef =
+                  FirebaseDatabase.instance.ref("posts/$postId");
+              postRef.remove().then((_) {}).catchError((error) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("Lỗi khi xóa bài đăng: $error")),
                 );
@@ -365,7 +388,8 @@ class PostItemState extends State<PostItem> {
 
   Future<Map<String, dynamic>?> fetchUserInfo(String iDUSer) async {
     try {
-      DatabaseReference userRef = FirebaseDatabase.instance.ref("users/$iDUSer");
+      DatabaseReference userRef =
+          FirebaseDatabase.instance.ref("users/$iDUSer");
       DataSnapshot snapshot = await userRef.get();
       if (!snapshot.exists) return null;
       return Map<String, dynamic>.from(snapshot.value as Map);
@@ -382,7 +406,7 @@ class PostItemState extends State<PostItem> {
       if (userData != null) {
         setState(() {
           avt = userData['AVT'] ?? "";
-          fullName = userData['fullName'] ?? "Người dùng";
+          fullName = userData['fullName'] ?? "";
         });
       }
     }
@@ -421,27 +445,32 @@ class PostItemState extends State<PostItem> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: avt.isNotEmpty ? NetworkImage(avt) : null,
+                      backgroundImage:
+                          avt.isNotEmpty ? NetworkImage(avt) : null,
                       backgroundColor: Colors.grey[300],
                     ),
                     SizedBox(width: 8),
-                    Expanded( // Thêm Expanded ở đây
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Wrap( // Dùng Wrap thay vì Row để xuống dòng nếu cần
+                          Wrap(
                             children: [
                               Text(
                                 fullName,
-                                style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w500),
                               ),
                               Text(
                                 type == 'avatar'
                                     ? " đã thay đổi ảnh đại diện"
                                     : type == 'imageCover'
-                                    ? " đã thay đổi ảnh bìa"
-                                    : "",
-                                style: TextStyle(fontSize: 14, color: Colors.black),
+                                        ? " đã thay đổi ảnh bìa"
+                                        : "",
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black),
                               ),
                             ],
                           ),
@@ -462,7 +491,6 @@ class PostItemState extends State<PostItem> {
                     ),
                   ],
                 ),
-
                 if (text.isNotEmpty)
                   Text(
                     text,
@@ -474,15 +502,15 @@ class PostItemState extends State<PostItem> {
                     children: [
                       InkWell(
                         onTap: () {
-                          Navigator.push(context,
-                            MaterialPageRoute(builder: (context) =>
-                              SeeMedia(
-                                post: widget.post,
-                                idUser: userId!,
-                                avt: avt,
-                                fullName: fullName,
-                              ))
-                          );
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SeeMedia(
+                                        post: widget.post,
+                                        idUser: userId!,
+                                        avt: avt,
+                                        fullName: fullName,
+                                      )));
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -505,15 +533,16 @@ class PostItemState extends State<PostItem> {
                         children: [
                           likes.isNotEmpty
                               ? Row(
-                            children: [
-                              Icon(Icons.favorite, color: Colors.red, size: 18),
-                              SizedBox(width: 4),
-                              Text(
-                                "${likes.length} bạn",
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          )
+                                  children: [
+                                    Icon(Icons.favorite,
+                                        color: Colors.red, size: 18),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      "${likes.length} bạn",
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                )
                               : SizedBox(),
                         ],
                       ),
@@ -526,19 +555,26 @@ class PostItemState extends State<PostItem> {
                               toggleLike(id, userId!, isLiked);
                             },
                             icon: Icon(
-                              likes.contains(userId!) ? Icons.favorite : Icons.favorite_border,
+                              likes.contains(userId!)
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                               size: 20,
-                              color: likes.contains(userId!) ? Colors.red : Colors.black87,
+                              color: likes.contains(userId!)
+                                  ? Colors.red
+                                  : Colors.black87,
                             ),
                             label: Text(
                               "Thích",
                               style: TextStyle(
                                 fontSize: 16,
-                                color: likes.contains(userId!) ? Color(0xFF6A0000) : Colors.black87,
+                                color: likes.contains(userId!)
+                                    ? Color(0xFF6A0000)
+                                    : Colors.black87,
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 2),
                               backgroundColor: Color(0xFFf7f7f7),
                             ),
                           ),
@@ -557,18 +593,22 @@ class PostItemState extends State<PostItem> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               backgroundColor: Color(0xFFf7f7f7),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
                             ),
                             child: FutureBuilder<int>(
-                              future: getTotalCommentsAndReplies(widget.post['id'] ?? ''),
+                              future: getTotalCommentsAndReplies(
+                                  widget.post['id'] ?? ''),
                               builder: (context, snapshot) {
                                 if (snapshot.data == 0) {
                                   return Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.insert_comment_outlined, size: 20, color: Colors.black87),
+                                      Icon(Icons.insert_comment_outlined,
+                                          size: 20, color: Colors.black87),
                                     ],
                                   );
                                 }
@@ -576,11 +616,15 @@ class PostItemState extends State<PostItem> {
                                 return Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.insert_comment_outlined, size: 20, color: Colors.black87),
+                                    Icon(Icons.insert_comment_outlined,
+                                        size: 20, color: Colors.black87),
                                     SizedBox(width: 6),
                                     Text(
                                       "${snapshot.data}",
-                                      style: TextStyle(fontSize: 14, color: Colors.black87,),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                   ],
                                 );

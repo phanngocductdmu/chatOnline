@@ -22,6 +22,7 @@ class MessageList extends StatefulWidget {
   final Function(bool) onSearchToggle;
   final bool typeRoom;
   final bool isFriend;
+  final String nickName;
 
   const MessageList({
     super.key,
@@ -34,6 +35,7 @@ class MessageList extends StatefulWidget {
     required this.typeRoom,
     required this.isFriend,
     required this.idFriend,
+    required this.nickName,
   });
 
   @override
@@ -52,7 +54,9 @@ class MessageListState extends State<MessageList> {
   String searchQuery = "";
   List<int> searchResults = [];
   int currentSearchIndex = 0;
-
+  bool isRequestSent = false;
+  bool isReceivedRequest = false;
+  String friendRequestId = "";
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   Duration _totalDuration = Duration.zero;
@@ -60,9 +64,9 @@ class MessageListState extends State<MessageList> {
   bool isPlaying = false;
   @override
   void initState() {
+    _checkFriendRequestStatus();
     _fetchMessages();
     super.initState();
-
     _audioPlayer.onDurationChanged.listen((duration) {
       if (mounted && duration.inMilliseconds > 0) {
         setState(() {
@@ -71,7 +75,6 @@ class MessageListState extends State<MessageList> {
         });
       }
     });
-
     _audioPlayer.onPositionChanged.listen((position) {
       if (mounted && _totalDuration != Duration.zero) {
         setState(() {
@@ -80,7 +83,6 @@ class MessageListState extends State<MessageList> {
         });
       }
     });
-
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) {
         setState(() {
@@ -89,7 +91,6 @@ class MessageListState extends State<MessageList> {
         });
       }
     });
-
   }
 
   void _togglePlayPause(String url) async {
@@ -142,9 +143,10 @@ class MessageListState extends State<MessageList> {
   }
 
   void _fetchMessages() {
+    String chatRoomId = widget.chatRoomId.isNotEmpty ? widget.chatRoomId : widget.userId + '_'+ widget.idFriend;
     _database
         .child('chats')
-        .child(widget.chatRoomId)
+        .child(chatRoomId)
         .child('messages')
         .onValue
         .listen((event) async {
@@ -160,7 +162,6 @@ class MessageListState extends State<MessageList> {
           Map<dynamic, dynamic> value = entry.value;
 
           if (value['isDelete'] == true || isHidden(value.cast<String, dynamic>())) continue;
-
 
           String senderId = value['senderId'] ?? '';
           senderIds.add(senderId);
@@ -452,22 +453,153 @@ class MessageListState extends State<MessageList> {
     _scrollToMessage(currentSearchIndex);
   }
 
-  void _sendFriendRequest(BuildContext context) {
-    final DatabaseReference friendRequestRef = FirebaseDatabase.instance.ref("friendInvitation");
+  void _checkFriendRequestStatus() async {
+    DatabaseReference friendRequestRef = FirebaseDatabase.instance.ref("friendInvitation");
+    final snapshotSent = await friendRequestRef
+        .orderByChild("from")
+        .equalTo(widget.userId)
+        .get();
+    bool hasSentRequest = false;
+    String requestKey = "";
+    if (snapshotSent.exists) {
+      for (var child in snapshotSent.children) {
+        if (child.child("to").value == widget.idFriend) {
+          hasSentRequest = true;
+          requestKey = child.key!;
+          break;
+        }
+      }
+    }
+    final snapshotReceived = await friendRequestRef
+        .orderByChild("to")
+        .equalTo(widget.userId)
+        .get();
+    bool hasReceivedRequest = false;
+    String receivedRequestKey = "";
+    if (snapshotReceived.exists) {
+      for (var child in snapshotReceived.children) {
+        if (child.child("from").value == widget.idFriend) {
+          hasReceivedRequest = true;
+          receivedRequestKey = child.key!;
+          break;
+        }
+      }
+    }
 
+    setState(() {
+      isRequestSent = hasSentRequest;
+      friendRequestId = requestKey;
+      isReceivedRequest = hasReceivedRequest;
+    });
+  }
+
+  void _sendFriendRequest(BuildContext context) {
+    DatabaseReference friendRequestRef = FirebaseDatabase.instance.ref("friendInvitation");
+    if (isRequestSent) return;
     final Map<String, dynamic> friendRequestData = {
       "from": widget.userId,
       "to": widget.idFriend,
       "timestamp": DateTime.now().millisecondsSinceEpoch,
     };
-
     friendRequestRef.push().set(friendRequestData).then((_) {
+      setState(() {
+        isRequestSent = true;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lời mời kết bạn đã được gửi')),
       );
+      // Gọi lại hàm để cập nhật trạng thái
+      _checkFriendRequestStatus();
     }).catchError((error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Có lỗi khi gửi lời mời')),
+      );
+    });
+  }
+
+  void _cancelFriendRequest(BuildContext context) {
+    if (friendRequestId.isEmpty) return;
+    DatabaseReference friendRequestRef = FirebaseDatabase.instance.ref("friendInvitation/$friendRequestId");
+    friendRequestRef.remove().then((_) {
+      setState(() {
+        isRequestSent = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã thu hồi lời mời kết bạn')),
+      );
+      _checkFriendRequestStatus();
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Có lỗi khi thu hồi lời mời')),
+      );
+    });
+  }
+
+  void _acceptFriendRequest(BuildContext context) async {
+    DatabaseReference friendRequestRef = FirebaseDatabase.instance.ref("friendInvitation");
+    final snapshotSent = await friendRequestRef
+        .orderByChild("from")
+        .equalTo(widget.userId)
+        .get();
+    final snapshotReceived = await friendRequestRef
+        .orderByChild("from")
+        .equalTo(widget.idFriend)
+        .get();
+    String? requestKey;
+    if (snapshotSent.exists) {
+      for (var child in snapshotSent.children) {
+        if (child.child("to").value == widget.idFriend) {
+          requestKey = child.key;
+          break;
+        }
+      }
+    }
+    if (requestKey == null && snapshotReceived.exists) {
+      for (var child in snapshotReceived.children) {
+        if (child.child("to").value == widget.userId) {
+          requestKey = child.key;
+          break;
+        }
+      }
+    }
+    if (requestKey == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: Không tìm thấy yêu cầu kết bạn')),
+      );
+      return;
+    }
+    // Xóa yêu cầu kết bạn
+    _database.child("friendInvitation").child(requestKey).remove().then((_) async {
+      // Thêm bạn bè vào danh sách friends
+      _database.child("friends").child(widget.userId).child(widget.idFriend).set(true);
+      _database.child("friends").child(widget.idFriend).child(widget.userId).set(true);
+      String chatRoomId = widget.userId.hashCode <= widget.idFriend.hashCode
+          ? "${widget.userId}_${widget.idFriend}"
+          : "${widget.idFriend}_${widget.userId}";
+      DatabaseReference chatRoomRef = _database.child('chatRooms/$chatRoomId');
+      DataSnapshot snapshot = await chatRoomRef.get();
+      bool chatRoomExists = snapshot.exists;
+      if (!chatRoomExists) {
+        _database.child("chatRooms").child(chatRoomId).set({
+          "members": {widget.userId: true, widget.idFriend: true},
+          "createdAt": DateTime.now().millisecondsSinceEpoch,
+          "lastMessageTime": DateTime.now().millisecondsSinceEpoch,
+        });
+        _database.child("messages").child(chatRoomId).push().set({
+          "senderId": "system",
+          "message": "Hãy trò chuyện với người bạn mới",
+          "timestamp": DateTime.now().millisecondsSinceEpoch,
+          "typeRoom": false,
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã chấp nhận lời mời')),
+      );
+      // Cập nhật trạng thái
+      _checkFriendRequestStatus();
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $error')),
       );
     });
   }
@@ -480,21 +612,91 @@ class MessageListState extends State<MessageList> {
       child: Column(
         children: [
           if (!widget.isFriend)
-            GestureDetector(
-              onTap: () {
-                _sendFriendRequest(context);
-              },
-              child: Container(
-                padding: EdgeInsets.all(8),
+            Container(
+              padding: EdgeInsets.fromLTRB(15, 5, 15, 5),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_add_alt_outlined, color: Colors.grey[800], size: 20,),
-                    SizedBox(width: 8),
-                    Text("Kết bạn", style: TextStyle(color: Colors.black, fontSize: 14)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isRequestSent) ...[
+                    Text(
+                      "Đã gửi lời mời kết bạn",
+                      style: TextStyle(color: Colors.black, fontSize: 14),
+                    ),
+                    Spacer(),
+                    GestureDetector(
+                      onTap: () => _cancelFriendRequest(context),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Thu hồi",
+                              style: TextStyle(color: Colors.black, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ] else if (isReceivedRequest) ...[
+                    Text(
+                      "Chấp nhận lời mời kết bạn",
+                      style: TextStyle(color: Colors.black, fontSize: 14),
+                    ),
+                    Spacer(),
+                    GestureDetector(
+                      onTap: () => _acceptFriendRequest(context),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Đồng ý",
+                              style: TextStyle(color: Colors.black, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  ] else ...[
+                    GestureDetector(
+                      onTap: () => _sendFriendRequest(context),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 100, vertical: 3),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_add_alt_outlined, color: Colors.black, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              "Kết bạn",
+                              style: TextStyle(color: Colors.black, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                   ],
-                ),
+                ],
               ),
             ),
           if (isSearch)
@@ -564,7 +766,6 @@ class MessageListState extends State<MessageList> {
               String text = message['text'] ?? "";
               bool isMe = message['senderId'] == widget.userId;
               bool isSelected = selectedMessageId == message['id'];
-
               List<TextSpan> textSpans = [];
               if (searchQuery.isNotEmpty && text.toLowerCase().contains(searchQuery)) {
                 String lowerText = text.toLowerCase();
@@ -590,11 +791,9 @@ class MessageListState extends State<MessageList> {
               } else {
                 textSpans.add(TextSpan(text: text));
               }
-
               if (!_messageKeys.containsKey(message['id'])) {
                 _messageKeys[message['id']] = GlobalKey();
               }
-
                 if (message['isDelete'] == true) return SizedBox();
                 return GestureDetector(
                 onTap: () {
@@ -602,7 +801,8 @@ class MessageListState extends State<MessageList> {
                     selectedMessageId = isSelected ? null : message['id'];
                   });
                 },
-                  onLongPress: () {
+                onLongPress: () {
+                  if (message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls') {
                     showModalBottomSheet(
                       context: context,
                       shape: RoundedRectangleBorder(
@@ -626,10 +826,10 @@ class MessageListState extends State<MessageList> {
                               ListTile(
                                 contentPadding: EdgeInsets.symmetric(horizontal: 20),
                                 title: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center, // Căn giữa icon + text
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8), // Khoảng cách giữa icon và text
+                                    SizedBox(width: 8),
                                     Text(
                                       "Xóa tin nhắn của bạn",
                                       style: TextStyle(color: Colors.red),
@@ -678,281 +878,290 @@ class MessageListState extends State<MessageList> {
                         );
                       },
                     );
-                  },
-                  child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 11.0, horizontal: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  }
+                },
+                child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11.0, horizontal: 8.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls'
+                    ? MainAxisAlignment.center
+                    : (isMe ? MainAxisAlignment.end : MainAxisAlignment.start),
+                children: [
+                  if (!isMe && message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls')
+                    Padding(
+                      padding: const EdgeInsets.only(right: 5.0),
+                      child: message['avatar'] == null || message['avatar'].isEmpty
+                          ? CircleAvatar(
+                        radius: 10.0,
+                        backgroundColor: Colors.grey[300],
+                        child: Icon(Icons.person, color: Colors.white, size: 10),
+                      )
+                          : CircleAvatar(
+                        radius: 10.0,
+                        backgroundImage: NetworkImage(message['avatar']),
+                      ),
+                    ),
+                  Column(
+                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                     children: [
-                      if (!isMe)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 5.0),
-                          child: message['avatar'] == null || message['avatar'].isEmpty
-                              ? CircleAvatar(
-                            radius: 10.0,
-                            backgroundColor: Colors.grey[300],
-                            child: Icon(Icons.person, color: Colors.white, size: 10),
-                          )
-                              : CircleAvatar(
-                            radius: 10.0,
-                            backgroundImage: NetworkImage(message['avatar']),
-                          ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: 50,
+                          maxWidth: MediaQuery.of(context).size.width * 0.6,
                         ),
-                      Column(
-                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                        children: [
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: 50,
-                              maxWidth: MediaQuery.of(context).size.width * 0.6,
-                            ),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                IntrinsicWidth(
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12.0),
-                                    decoration: BoxDecoration(
-                                      color: message['typeChat'] == 'sticker' ||
-                                          message['typeChat'] == 'image' ||
-                                          message['typeChat'] == 'video'
-                                          ? Colors.transparent
-                                          : message['typeChat'] == 'introduce'
-                                          ? const Color(0xff13cc80)
-                                          : (isMe ? const Color(0xFFB1EBC7) : Colors.white),
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        if (message['replyText'] != null && message['replyText'].isNotEmpty)
-                                          GestureDetector(
-                                            onTap: () {
-                                              _scrollToReplyMessage(message['replyTo']);
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8.0),
-                                              margin: const EdgeInsets.only(bottom: 8.0),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[200],
-                                                borderRadius: BorderRadius.circular(6.0),
-                                              ),
-                                              child: Text(
-                                                message['replyText'],
-                                                style: const TextStyle(color: Colors.black87, fontStyle: FontStyle.italic),
-                                              ),
-                                            ),
-                                          ),
-                                        if (widget.typeRoom && !isMe)
-                                          Text(
-                                            message['name'],
-                                            style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
-                                          ),
-                                        _buildMessageContent(message),
-                                        if (message['typeChat'] != 'sticker' && message['typeChat'] != 'image' && message['typeChat'] != 'video')
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 4),
-                                            child: Text(
-                                              message['time'],
-                                              style: TextStyle(
-                                                color: message['typeChat'] == 'introduce' ? Colors.white : Colors.grey,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IntrinsicWidth(
+                              child: Container(
+                                padding: EdgeInsets.all(
+                                  (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls') ? 5.0 : 12.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls')
+                                      ? Colors.white
+                                      : message['typeChat'] == 'sticker' ||
+                                      message['typeChat'] == 'image' ||
+                                      message['typeChat'] == 'video'
+                                      ? Colors.transparent
+                                      : message['typeChat'] == 'introduce'
+                                      ? const Color(0xff13cc80)
+                                      : (isMe ? const Color(0xFFB1EBC7) : Colors.white),
+                                  borderRadius: BorderRadius.circular(
+                                    (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls') ? 30.0 : 8.0,
                                   ),
                                 ),
-                                if (message['typeChat'] != 'sticker')
-                                  Positioned(
-                                    left: isMe ? (message['typeChat'] == 'image' || message['typeChat'] == 'video' ? 20 : 10) : null,
-                                    right: isMe ? null : (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 20 : 10,
-                                    bottom: (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 5 : -8,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        String messageId = message['id']?.toString() ?? "";
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (message['replyText'] != null && message['replyText'].isNotEmpty && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                                      GestureDetector(
+                                        onTap: () {
+                                          _scrollToReplyMessage(message['replyTo']);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          margin: const EdgeInsets.only(bottom: 8.0),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(6.0),
+                                          ),
+                                          child: Text(
+                                            message['replyText'],
+                                            style: const TextStyle(color: Colors.black87, fontStyle: FontStyle.italic),
+                                          ),
+                                        ),
+                                      ),
+                                    if (widget.typeRoom && !isMe)
+                                      Text(
+                                        message['name'],
+                                        style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
+                                      ),
+                                    _buildMessageContent(message),
+                                    if (message['typeChat'] != 'sticker' && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          message['time'],
+                                          style: TextStyle(
+                                            color: message['typeChat'] == 'introduce' ? Colors.white : Colors.grey,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (message['typeChat'] != 'sticker' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                              Positioned(
+                                left: isMe ? (message['typeChat'] == 'image' || message['typeChat'] == 'video' ? 20 : 10) : null,
+                                right: isMe ? null : (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 20 : 10,
+                                bottom: (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 5 : -8,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    String messageId = message['id']?.toString() ?? "";
 
-                                        // Lấy danh sách reaction được sắp xếp theo số lượng nhiều nhất
-                                        List<MapEntry<String, int>> sortedReactions = [];
+                                    // Lấy danh sách reaction được sắp xếp theo số lượng nhiều nhất
+                                    List<MapEntry<String, int>> sortedReactions = [];
 
-                                        if (message['reactions'] is Map) {
-                                          Map<String, dynamic> reactions = Map<String, dynamic>.from(message['reactions']);
-                                          Map<String, int> mergedReactions = {};
+                                    if (message['reactions'] is Map) {
+                                      Map<String, dynamic> reactions = Map<String, dynamic>.from(message['reactions']);
+                                      Map<String, int> mergedReactions = {};
 
-                                          // Tính tổng số lượng mỗi reaction
-                                          reactions.forEach((reactionType, users) {
-                                            if (users is Map) {
-                                              int totalCount = users.values.fold(0, (sum, value) {
-                                                if (value is int) return sum + value;
-                                                if (value is String) return sum + (int.tryParse(value) ?? 0);
-                                                return sum;
-                                              });
-
-                                              if (totalCount > 0) {
-                                                mergedReactions[reactionType] = totalCount;
-                                              }
-                                            }
+                                      // Tính tổng số lượng mỗi reaction
+                                      reactions.forEach((reactionType, users) {
+                                        if (users is Map) {
+                                          int totalCount = users.values.fold(0, (sum, value) {
+                                            if (value is int) return sum + value;
+                                            if (value is String) return sum + (int.tryParse(value) ?? 0);
+                                            return sum;
                                           });
 
-                                          sortedReactions = mergedReactions.entries.toList()
-                                            ..sort((a, b) => b.value.compareTo(a.value));
+                                          if (totalCount > 0) {
+                                            mergedReactions[reactionType] = totalCount;
+                                          }
                                         }
+                                      });
 
-                                        // Nếu có reaction, lấy reaction có số lượng nhiều nhất, nếu không thì mặc định là "heart"
-                                        String topReaction = sortedReactions.isNotEmpty ? sortedReactions.first.key : 'heart';
+                                      sortedReactions = mergedReactions.entries.toList()
+                                        ..sort((a, b) => b.value.compareTo(a.value));
+                                    }
 
-                                        // Cập nhật reaction với loại phổ biến nhất
-                                        updateReaction(widget.chatRoomId, messageId, widget.userId, topReaction);
-                                      },
-                                      onLongPress: () {
-                                        showModalBottomSheet(
-                                          context: context,
-                                          backgroundColor: Colors.transparent,
-                                          builder: (BuildContext context) {
-                                            return GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: () => Navigator.pop(context),
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(bottom: 50),
-                                                child: Align(
-                                                  alignment: Alignment.bottomCenter,
-                                                  child: Material(
-                                                    color: Colors.transparent,
-                                                    child: Container(
-                                                      padding: const EdgeInsets.all(5),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(30),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: Colors.black26,
-                                                            blurRadius: 10,
-                                                            spreadRadius: 1,
-                                                          ),
-                                                        ],
+                                    // Nếu có reaction, lấy reaction có số lượng nhiều nhất, nếu không thì mặc định là "heart"
+                                    String topReaction = sortedReactions.isNotEmpty ? sortedReactions.first.key : 'heart';
+
+                                    // Cập nhật reaction với loại phổ biến nhất
+                                    updateReaction(widget.chatRoomId, messageId, widget.userId, topReaction);
+                                  },
+                                  onLongPress: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (BuildContext context) {
+                                        return GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () => Navigator.pop(context),
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(bottom: 50),
+                                            child: Align(
+                                              alignment: Alignment.bottomCenter,
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(5),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(30),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black26,
+                                                        blurRadius: 10,
+                                                        spreadRadius: 1,
                                                       ),
-                                                      child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          _reactionButton("❤️", () => updateReaction(widget.chatRoomId, message['id'], widget.userId, 'heart')),
-                                                          _reactionButton("👍", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'like')),
-                                                          _reactionButton("😂", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'haha')),
-                                                          _reactionButton("😮", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'wow')),
-                                                          _reactionButton("😢", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'sad')),
-                                                          _reactionButton("😡", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'angry')),
-                                                          _reactionButton("🗑️", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'remove')),
-                                                        ],
-                                                      ),
-                                                    ),
+                                                    ],
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      _reactionButton("❤️", () => updateReaction(widget.chatRoomId, message['id'], widget.userId, 'heart')),
+                                                      _reactionButton("👍", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'like')),
+                                                      _reactionButton("😂", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'haha')),
+                                                      _reactionButton("😮", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'wow')),
+                                                      _reactionButton("😢", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'sad')),
+                                                      _reactionButton("😡", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'angry')),
+                                                      _reactionButton("🗑️", () => updateReaction(widget.chatRoomId, message['id'], widget.userId,'remove')),
+                                                    ],
                                                   ),
                                                 ),
                                               ),
-                                            );
-                                          },
+                                            ),
+                                          ),
                                         );
                                       },
-                                      child: Builder(
-                                        builder: (context) {
-                                          int totalReactions = 0;
-                                          List<MapEntry<String, int>> sortedReactions = [];
+                                    );
+                                  },
+                                  child: Builder(
+                                    builder: (context) {
+                                      int totalReactions = 0;
+                                      List<MapEntry<String, int>> sortedReactions = [];
 
-                                          if (message['reactions'] is Map) {
-                                            Map<String, dynamic> reactions = Map<String, dynamic>.from(message['reactions']);
-                                            Map<String, int> mergedReactions = {};
+                                      if (message['reactions'] is Map) {
+                                        Map<String, dynamic> reactions = Map<String, dynamic>.from(message['reactions']);
+                                        Map<String, int> mergedReactions = {};
 
-                                            // Duyệt qua từng loại reaction và tính tổng số lượng
-                                            reactions.forEach((reactionType, users) {
-                                              if (users is Map) {
-                                                int totalCount = users.values.fold(0, (sum, value) {
-                                                  if (value is int) return sum + value;
-                                                  if (value is String) return sum + (int.tryParse(value) ?? 0);
-                                                  return sum;
-                                                });
-
-                                                if (totalCount > 0) {
-                                                  mergedReactions[reactionType] = totalCount;
-                                                }
-                                              }
+                                        // Duyệt qua từng loại reaction và tính tổng số lượng
+                                        reactions.forEach((reactionType, users) {
+                                          if (users is Map) {
+                                            int totalCount = users.values.fold(0, (sum, value) {
+                                              if (value is int) return sum + value;
+                                              if (value is String) return sum + (int.tryParse(value) ?? 0);
+                                              return sum;
                                             });
 
-                                            // Sắp xếp theo số lượng giảm dần
-                                            sortedReactions = mergedReactions.entries.toList()
-                                              ..sort((a, b) => b.value.compareTo(a.value));
-
-                                            // Tổng số reactions
-                                            totalReactions = sortedReactions.fold(0, (sum, e) => sum + e.value);
+                                            if (totalCount > 0) {
+                                              mergedReactions[reactionType] = totalCount;
+                                            }
                                           }
+                                        });
 
-                                          // Lấy các reaction nhiều nhất
-                                          List<String> topReactions = sortedReactions.map((e) => e.key).toList();
+                                        // Sắp xếp theo số lượng giảm dần
+                                        sortedReactions = mergedReactions.entries.toList()
+                                          ..sort((a, b) => b.value.compareTo(a.value));
 
-                                          // Bản đồ reaction -> emoji
-                                          final Map<String, String> emojiMap = {
-                                            'heart': '❤️',
-                                            'haha': '😂',
-                                            'sad': '😢',
-                                            'angry': '😡',
-                                            'wow': '😮',
-                                            'like': '👍',
-                                          };
+                                        // Tổng số reactions
+                                        totalReactions = sortedReactions.fold(0, (sum, e) => sum + e.value);
+                                      }
 
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: Color(0xFFFAFAFA),
-                                              borderRadius: BorderRadius.circular(30),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                if (topReactions.isEmpty)
-                                                  Icon(
-                                                    Icons.favorite_border,
-                                                    color: Colors.grey,
-                                                    size: 13,
-                                                  )
-                                                else ...[
-                                                  ...topReactions.take(2).map((reaction) => Padding(
-                                                    padding: const EdgeInsets.only(left: 2),
-                                                    child: Text(
-                                                      emojiMap[reaction] ?? '❓',
-                                                      style: TextStyle(fontSize: 11),
-                                                    ),
-                                                  )),
-                                                  if (totalReactions > 0)
-                                                    Padding(
-                                                      padding: const EdgeInsets.only(left: 2),
-                                                      child: Text(
-                                                        totalReactions.toString(),
-                                                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                                                      ),
-                                                    ),
-                                                ],
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
+                                      // Lấy các reaction nhiều nhất
+                                      List<String> topReactions = sortedReactions.map((e) => e.key).toList();
+
+                                      // Bản đồ reaction -> emoji
+                                      final Map<String, String> emojiMap = {
+                                        'heart': '❤️',
+                                        'haha': '😂',
+                                        'sad': '😢',
+                                        'angry': '😡',
+                                        'wow': '😮',
+                                        'like': '👍',
+                                      };
+
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFFFAFAFA),
+                                          borderRadius: BorderRadius.circular(30),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (topReactions.isEmpty)
+                                              Icon(
+                                                Icons.favorite_border,
+                                                color: Colors.grey,
+                                                size: 13,
+                                              )
+                                            else ...[
+                                              ...topReactions.take(2).map((reaction) => Padding(
+                                                padding: const EdgeInsets.only(left: 2),
+                                                child: Text(
+                                                  emojiMap[reaction] ?? '❓',
+                                                  style: TextStyle(fontSize: 11),
+                                                ),
+                                              )),
+                                              if (totalReactions > 0)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(left: 2),
+                                                  child: Text(
+                                                    totalReactions.toString(),
+                                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                                  ),
+                                                ),
+                                            ],
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
-                              ],
-                            ),
-                          ),
-                          if (isMe && isSelected && message['typeChat'] != 'image' && message['typeChat'] != 'video')
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                message['status'] ?? 'Đã gửi',
-                                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
+                      if (isMe && isSelected && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            message['status'] ?? 'Đã gửi',
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ),
                     ],
                   ),
-                ),
+                ],
+              ),
+              ),
               );
             },
           ),
@@ -1231,12 +1440,55 @@ class MessageListState extends State<MessageList> {
       case 'link':
         return LinkPreview(messageText: message['text'] ?? '');
 
+      case 'block':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.app_blocking,
+              color: Colors.red,
+              size: 15,
+            ),
+            SizedBox(width: 8),
+            Text(
+              '${widget.nickName} đã chặn tin nhắn.',
+              style: TextStyle(color: Colors.black),
+            ),
+          ],
+        );
+
+      case 'blockCalls':
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            widget.avt != null
+                ? CircleAvatar(
+              backgroundImage: NetworkImage(widget.avt),
+              radius: 10,
+            )
+                : CircleAvatar(
+              backgroundColor: Colors.grey,
+              radius: 10,
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 10,
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              '${widget.nickName} không nhận cuộc gọi.',
+              style: TextStyle(color: Colors.black),
+            ),
+          ],
+        );
+
       case 'introduce':
         return FutureBuilder<Map<String, String>>(
           future: _fetchUserInfo(message['text'] ?? ''),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Center(child: SizedBox()); // Hiển thị khi đang tải dữ liệu
+              return Center(child: SizedBox());
             }
             final String avatarUrl = snapshot.data!['avatar'] ?? '';
             final String fullName = snapshot.data!['fullName'] ?? 'Người dùng';
@@ -1244,10 +1496,10 @@ class MessageListState extends State<MessageList> {
 
             return Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start, // Căn sát trái
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10), // Thêm padding nhỏ để không quá sát viền
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [

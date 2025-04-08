@@ -42,19 +42,58 @@ class MessageState extends State<Message> {
   bool _isTyping = false;
   bool isSearchActive = false;
   Map<String, dynamic>? selectedReplyMessage;
-
-
-  void handleReplyMessage(Map<String, dynamic> message) {
-    setState(() {
-      selectedReplyMessage = message;
-    });
-  }
+  bool isMessageBlockedCallsMe = false;
+  bool isMessageBlocked = false;
 
   @override
   void initState() {
     super.initState();
     _listenTypingStatus();
     _markMessagesAsRead();
+    _checkBlockCallsStatusMe();
+    _checkBlockStatus();
+  }
+
+  void _checkBlockStatus() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.senderId)
+        .child(widget.idFriend);
+    DatabaseEvent event = await blockRef.once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      final data = snapshot.value as Map?;
+      if (data != null) {
+        setState(() {
+          isMessageBlocked = data['blockMessages'] ?? false;
+        });
+      }
+    }
+  }
+
+  void _checkBlockCallsStatusMe() async {
+    DatabaseReference blockRef = FirebaseDatabase.instance
+        .ref()
+        .child('blockList')
+        .child(widget.idFriend)
+        .child(widget.senderId);
+    DatabaseEvent event = await blockRef.once();
+    DataSnapshot snapshot = event.snapshot;
+    if (snapshot.exists) {
+      final data = snapshot.value as Map?;
+      if (data != null) {
+        setState(() {
+          isMessageBlockedCallsMe = data['blockCalls'] ?? false;
+        });
+      }
+    }
+  }
+
+  void handleReplyMessage(Map<String, dynamic> message) {
+    setState(() {
+      selectedReplyMessage = message;
+    });
   }
 
   void _markMessagesAsRead() {
@@ -150,6 +189,24 @@ class MessageState extends State<Message> {
     }
   }
 
+  void _sendMessage() async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    String chatRoomId = widget.chatRoomId.isNotEmpty ? widget.chatRoomId : widget.senderId +'_'+ widget.idFriend;
+    if(isMessageBlockedCallsMe){
+      final messageData = {
+        'senderId': widget.senderId,
+        'timestamp': timestamp,
+        'typeChat': 'blockCalls',
+        'hiddenBy': widget.idFriend,
+      };
+      if(widget.chatRoomId.isEmpty){
+        await _database.child('chats/$chatRoomId/messages').push().set(messageData);
+      } else {
+        await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -164,54 +221,56 @@ class MessageState extends State<Message> {
         ),
         title: GestureDetector(
           onTap: () async {
-            if (widget.typeRoom) {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OptionGroup(
-                    idFriend: widget.idFriend,
-                    idChatRoom: widget.chatRoomId,
-                    groupName: widget.groupName,
-                    idUser: widget.userId,
-                    groupAvatar: widget.groupAvatar,
-                    member: List<String>.from(widget.member),
-                    description: widget.description,
-                    onSearchToggle: (bool value) {
-                      setState(() {
-                        isSearchActive = value;
-                      });
-                    },
+            if(!isMessageBlocked){
+              if (widget.typeRoom) {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OptionGroup(
+                      idFriend: widget.idFriend,
+                      idChatRoom: widget.chatRoomId,
+                      groupName: widget.groupName,
+                      idUser: widget.userId,
+                      groupAvatar: widget.groupAvatar,
+                      member: List<String>.from(widget.member),
+                      description: widget.description,
+                      onSearchToggle: (bool value) {
+                        setState(() {
+                          isSearchActive = value;
+                        });
+                      },
+                    ),
                   ),
-                ),
-              );
-              if (result == true) {
-                setState(() {
-                  isSearchActive = result;
-                });
-              }
-            } else {
-              // Xử lý khi là chat riêng tư
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OptionMessage(
-                    idFriend: widget.idFriend,
-                    idChatRoom: widget.chatRoomId,
-                    nickName: widget.fullName,
-                    idUser: widget.userId,
-                    avt: widget.avt,
-                    onSearchToggle: (bool value) {
-                      setState(() {
-                        isSearchActive = value;
-                      });
-                    },
+                );
+                if (result == true) {
+                  setState(() {
+                    isSearchActive = result;
+                  });
+                }
+              } else {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OptionMessage(
+                      idFriend: widget.idFriend,
+                      idChatRoom: widget.chatRoomId,
+                      nickName: widget.fullName,
+                      idUser: widget.userId,
+                      avt: widget.avt,
+                      isFriend: widget.isFriend,
+                      onSearchToggle: (bool value) {
+                        setState(() {
+                          isSearchActive = value;
+                        });
+                      },
+                    ),
                   ),
-                ),
-              );
-              if (result == true) {
-                setState(() {
-                  isSearchActive = result;
-                });
+                );
+                if (result == true) {
+                  setState(() {
+                    isSearchActive = result;
+                  });
+                }
               }
             }
           },
@@ -252,7 +311,7 @@ class MessageState extends State<Message> {
         actions: [
           widget.typeRoom
               ? IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.white), // Icon thêm thành viên
+            icon: const Icon(Icons.person_add, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
@@ -269,40 +328,47 @@ class MessageState extends State<Message> {
               : Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.call, color: Colors.white), // Icon gọi thoại
+                icon: const Icon(Icons.call, color: Colors.white),
                 onPressed: () {
-                  addCallStatus('call');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Call(
-                        chatRoomId: widget.chatRoomId,
-                        idFriend: widget.idFriend,
-                        avt: widget.avt,
-                        fullName: widget.fullName,
-                        userId: widget.userId,
+                  if(!isMessageBlockedCallsMe){
+                    addCallStatus('call');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Call(
+                          chatRoomId: widget.chatRoomId,
+                          idFriend: widget.idFriend,
+                          avt: widget.avt,
+                          fullName: widget.fullName,
+                          userId: widget.userId,
+                        ),
                       ),
-                    ),
-                  );
-
+                    );
+                  } else{
+                    _sendMessage();
+                  }
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.videocam, color: Colors.white), // Icon gọi video
                 onPressed: () {
-                  addCallStatus("videoCall");
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => VideoCall(
-                        chatRoomId: widget.chatRoomId,
-                        idFriend: widget.idFriend,
-                        avt: widget.avt,
-                        fullName: widget.fullName,
-                        userId: widget.userId,
+                  if(!isMessageBlockedCallsMe){
+                    addCallStatus("videoCall");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VideoCall(
+                          chatRoomId: widget.chatRoomId,
+                          idFriend: widget.idFriend,
+                          avt: widget.avt,
+                          fullName: widget.fullName,
+                          userId: widget.userId,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  } else{
+                    _sendMessage();
+                  }
                 },
               ),
             ],
@@ -310,43 +376,45 @@ class MessageState extends State<Message> {
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => widget.typeRoom
-                      ? OptionGroup(
-                    idFriend: widget.idFriend,
-                    idChatRoom: widget.chatRoomId,
-                    groupName: widget.groupName,
-                    idUser: widget.userId,
-                    groupAvatar: widget.groupAvatar,
-                    member: List<String>.from(widget.member),
-                    description: widget.description,
-                    onSearchToggle: (bool value) {
-                      setState(() {
-                        isSearchActive = value;
-                      });
-                    },
-                  )
-                      : OptionMessage(
-                    idFriend: widget.idFriend,
-                    idChatRoom: widget.chatRoomId,
-                    nickName: widget.fullName,
-                    idUser: widget.userId,
-                    avt: widget.avt,
-                    onSearchToggle: (bool value) {
-                      setState(() {
-                        isSearchActive = value;
-                      });
-                    },
+              if(!isMessageBlocked){
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => widget.typeRoom
+                        ? OptionGroup(
+                      idFriend: widget.idFriend,
+                      idChatRoom: widget.chatRoomId,
+                      groupName: widget.groupName,
+                      idUser: widget.userId,
+                      groupAvatar: widget.groupAvatar,
+                      member: List<String>.from(widget.member),
+                      description: widget.description,
+                      onSearchToggle: (bool value) {
+                        setState(() {
+                          isSearchActive = value;
+                        });
+                      },
+                    )
+                        : OptionMessage(
+                      isFriend: widget.isFriend,
+                      idFriend: widget.idFriend,
+                      idChatRoom: widget.chatRoomId,
+                      nickName: widget.fullName,
+                      idUser: widget.userId,
+                      avt: widget.avt,
+                      onSearchToggle: (bool value) {
+                        setState(() {
+                          isSearchActive = value;
+                        });
+                      },
+                    ),
                   ),
-                ),
-              );
-
-              if (result == true) {
-                setState(() {
-                  isSearchActive = result;
-                });
+                );
+                if (result == true) {
+                  setState(() {
+                    isSearchActive = result;
+                  });
+                }
               }
             },
           ),
@@ -356,6 +424,7 @@ class MessageState extends State<Message> {
         children: [
           Expanded(
             child: MessageList(
+              nickName: widget.fullName,
               chatRoomId: widget.chatRoomId,
               userId: widget.userId,
               avt: widget.avt,
@@ -376,6 +445,7 @@ class MessageState extends State<Message> {
             ),
           ),
           MessageInput(
+            nickName: widget.fullName,
             chatRoomId: widget.chatRoomId,
             senderId: widget.userId,
             idFriend: widget.idFriend,

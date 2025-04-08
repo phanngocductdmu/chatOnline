@@ -8,17 +8,22 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'hand_detector.dart';
 import 'package:camera/camera.dart';
 
-
 const String appId = "bad34fda816e4c31a4d63a6761c653af";
-const String serverUrl = "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
+const String serverUrl =
+    "https://5b4fc1b1-9820-45b6-8387-e1815f06d52f-00-1cd15kud1kxfl.sisko.replit.dev:5000/rtc-token";
 
 class VideoCall extends StatefulWidget {
   final String chatRoomId, idFriend, avt, fullName, userId;
 
-  const VideoCall({super.key, required this.chatRoomId, required this.idFriend, required this.avt, required this.fullName, required this.userId});
+  const VideoCall(
+      {super.key,
+      required this.chatRoomId,
+      required this.idFriend,
+      required this.avt,
+      required this.fullName,
+      required this.userId});
 
   @override
   State<VideoCall> createState() => _VideoCallState();
@@ -44,18 +49,11 @@ class _VideoCallState extends State<VideoCall> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
 
-
-  late CameraController _cameraController;
-  late List<CameraDescription> cameras;
-  HandDetector handDetector = HandDetector();
-  bool _isProcessing = false;
-
   @override
   void initState() {
     super.initState();
     _requestPermissions();
     _initializeCall();
-    _initializeCamera();
     _initializeCall().then((_) {
       _checkCallStatus();
     });
@@ -72,9 +70,7 @@ class _VideoCallState extends State<VideoCall> {
         if (event.snapshot.value != null) {
           Map<dynamic, dynamic> calls = event.snapshot.value as Map;
           calls.forEach((key, value) async {
-            String status = value['status']
-                .toString()
-                .toLowerCase();
+            String status = value['status'].toString().toLowerCase();
             if (status == 'refuse' && !hasPopped) {
               if (mounted) {
                 Navigator.pop(context);
@@ -91,7 +87,8 @@ class _VideoCallState extends State<VideoCall> {
 
   Future<void> _requestPermissions() async {
     var statuses = await [Permission.camera, Permission.microphone].request();
-    if (statuses[Permission.camera]!.isPermanentlyDenied || statuses[Permission.microphone]!.isPermanentlyDenied) {
+    if (statuses[Permission.camera]!.isPermanentlyDenied ||
+        statuses[Permission.microphone]!.isPermanentlyDenied) {
       openAppSettings();
     }
   }
@@ -113,9 +110,12 @@ class _VideoCallState extends State<VideoCall> {
   }
 
   Future<String?> _getReceiverId() async {
-    final snapshot = await _database.child('chatRooms/${widget.chatRoomId}/members').get();
+    final snapshot =
+        await _database.child('chatRooms/${widget.chatRoomId}/members').get();
     if (snapshot.exists && snapshot.value is Map) {
-      return (snapshot.value as Map).keys.firstWhere((id) => id != widget.userId, orElse: () => null);
+      return (snapshot.value as Map)
+          .keys
+          .firstWhere((id) => id != widget.userId, orElse: () => null);
     }
     return null;
   }
@@ -124,7 +124,8 @@ class _VideoCallState extends State<VideoCall> {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final receiverId = await _getReceiverId();
     if (receiverId == null) return;
-    final snapshot = await _database.child('users/$receiverId/status/online').get();
+    final snapshot =
+        await _database.child('users/$receiverId/status/online').get();
     final isReceiverOnline = snapshot.exists && snapshot.value == true;
     final newStatus = isReceiverOnline ? 'Đã nhận' : 'Đã gửi';
     final messageData = {
@@ -136,7 +137,10 @@ class _VideoCallState extends State<VideoCall> {
       'statuss': statusS,
       'totalTime': _formatDurationFirebase(callDuration),
     };
-    await _database.child('chats/${widget.chatRoomId}/messages').push().set(messageData);
+    await _database
+        .child('chats/${widget.chatRoomId}/messages')
+        .push()
+        .set(messageData);
     await _database.child('chatRooms/${widget.chatRoomId}').update({
       'lastMessage': 'Cuộc gọi đến',
       'lastMessageTime': timestamp,
@@ -186,7 +190,12 @@ class _VideoCallState extends State<VideoCall> {
       final response = await http.post(
         Uri.parse(serverUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"channelName": channelName, "uid": uid, "role": "publisher", "expireTime": 3600}),
+        body: jsonEncode({
+          "channelName": channelName,
+          "uid": uid,
+          "role": "publisher",
+          "expireTime": 3600
+        }),
       );
       if (response.statusCode == 200) {
         // print("✅ Agora token received");
@@ -225,9 +234,11 @@ class _VideoCallState extends State<VideoCall> {
     DatabaseReference ref = FirebaseDatabase.instance.ref("calls");
 
     try {
-      DatabaseEvent event = await ref.orderByChild("channelName").equalTo(channelName).once();
+      DatabaseEvent event =
+          await ref.orderByChild("channelName").equalTo(channelName).once();
       if (event.snapshot.value != null) {
-        Map<dynamic, dynamic> calls = event.snapshot.value as Map<dynamic, dynamic>;
+        Map<dynamic, dynamic> calls =
+            event.snapshot.value as Map<dynamic, dynamic>;
         calls.forEach((key, value) async {
           await ref.child(key).update({"status": "missed"});
         });
@@ -243,10 +254,14 @@ class _VideoCallState extends State<VideoCall> {
   void endCall() async {
     try {
       DatabaseReference callsRef = FirebaseDatabase.instance.ref("calls");
-      DatabaseEvent event = await callsRef.orderByChild('channelName').equalTo(widget.chatRoomId).once();
+      DatabaseEvent event = await callsRef
+          .orderByChild('channelName')
+          .equalTo(widget.chatRoomId)
+          .once();
       if (event.snapshot.exists) {
         for (var child in event.snapshot.children) {
-          Map<dynamic, dynamic>? callData = child.value as Map<dynamic, dynamic>?;
+          Map<dynamic, dynamic>? callData =
+              child.value as Map<dynamic, dynamic>?;
           if (callData != null) {
             String myID = callData['myID'] ?? '';
             if (_remoteUid == null) {
@@ -376,34 +391,6 @@ class _VideoCallState extends State<VideoCall> {
     isBlurEnabled = !isBlurEnabled;
   }
 
-  Future<void> _initializeCamera() async {
-    cameras = await availableCameras();
-    _cameraController = CameraController(cameras[1], ResolutionPreset.medium);
-    await _cameraController.initialize();
-    _cameraController.startImageStream(_processCameraImage);
-  }
-
-  Future<void> _processCameraImage(CameraImage image) async {
-    if (!isAISwitchOn || _isProcessing) return;
-
-    _isProcessing = true;
-    try {
-      final tempFile = File('/tmp/temp_image.jpg');
-      await tempFile.writeAsBytes(image.planes[0].bytes);
-
-      bool isFist = await handDetector.detectHandGesture(tempFile);
-      bool shouldExit = handDetector.handleFistGesture(isFist);
-
-      if (shouldExit) {
-        endCall();
-        print("🚀 Đã thoát khỏi video call!");
-      }
-    } catch (e) {
-      print("Lỗi xử lý ảnh: $e");
-    } finally {
-      _isProcessing = false;
-    }
-  }
 
   Future<void> _initializeCall() async {
     setState(() => isLoading = true);
@@ -431,7 +418,8 @@ class _VideoCallState extends State<VideoCall> {
     }
   }
 
-  Future<void> _initializeAgora(String channelName, int uid, String token) async {
+  Future<void> _initializeAgora(
+      String channelName, int uid, String token) async {
     _engine = createAgoraRtcEngine();
     await _engine!.initialize(const RtcEngineContext(appId: appId));
     String tempFilePath = await copyAssetToTemp("assets/audio/cuocgoidi.mp3");
@@ -441,11 +429,12 @@ class _VideoCallState extends State<VideoCall> {
       cycle: 1,
     );
     await _engine!.enableAudio();
-    await _engine!.setChannelProfile(ChannelProfileType.channelProfileCommunication);
-    await _engine!.setupLocalVideo(const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
+    await _engine!
+        .setChannelProfile(ChannelProfileType.channelProfileCommunication);
+    await _engine!.setupLocalVideo(
+        const VideoCanvas(uid: 0, renderMode: RenderModeType.renderModeHidden));
 
     _engine!.registerEventHandler(RtcEngineEventHandler(
-
       onUserJoined: (connection, remoteUid, elapsed) async {
         if (!mounted) return;
         setState(() {
@@ -455,24 +444,18 @@ class _VideoCallState extends State<VideoCall> {
         await _engine!.stopAudioMixing();
         await _engine!.muteLocalAudioStream(false);
       },
-
       onUserOffline: (connection, remoteUid, reason) {
         setState(() => _remoteUid = null);
         Navigator.pop(context);
       },
-
-      onAudioMixingStateChanged: (state, reason) {
-      },
-
-      onAudioMixingFinished: () {
-      },
+      onAudioMixingStateChanged: (state, reason) {},
+      onAudioMixingFinished: () {},
     ));
     await _engine!.joinChannel(
         token: token,
         channelId: channelName,
         uid: uid,
-        options: const ChannelMediaOptions()
-    );
+        options: const ChannelMediaOptions());
     _waitForRemoteUser();
   }
 
@@ -490,8 +473,10 @@ class _VideoCallState extends State<VideoCall> {
           children: [
             _remoteUid != null ? _remoteVideo() : _buildMyVideoFullScreen(),
             if (_remoteUid == null) _buildWaitingOverlay(),
-            if (_remoteUid != null) Positioned(top: 30, right: 10, child: _buildMyVideoSmall()),
-            if (_remoteUid != null) Positioned(top: 30, left: 10, child: switchAI()),
+            if (_remoteUid != null)
+              Positioned(top: 30, right: 10, child: _buildMyVideoSmall()),
+            if (_remoteUid != null)
+              Positioned(top: 30, left: 10, child: switchAI()),
             if (_remoteUid != null)
               Positioned(
                 top: MediaQuery.of(context).size.height / 2 - 50,
@@ -535,7 +520,8 @@ class _VideoCallState extends State<VideoCall> {
             },
           ),
         ),
-        const Text("Tự động tắt (Nắm tay 3 lần)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        const Text("Tự động tắt (Nắm tay 3 lần)",
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -556,10 +542,9 @@ class _VideoCallState extends State<VideoCall> {
         ),
         SizedBox(height: 10),
         IconButton(
-          icon: Icon(Icons.face_retouching_natural_outlined, color: Colors.white), // Filter
-          onPressed: () {
-            
-          },
+          icon: Icon(Icons.face_retouching_natural_outlined,
+              color: Colors.white), // Filter
+          onPressed: () {},
         ),
       ],
     );
@@ -603,7 +588,8 @@ class _VideoCallState extends State<VideoCall> {
           const SizedBox(height: 10),
           Text(
             widget.fullName,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 5),
           const Text(
@@ -636,21 +622,21 @@ class _VideoCallState extends State<VideoCall> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            if (!hide) _buildControlButton(
-              isCameraOn ? Icons.videocam : Icons.videocam_off,
-              toggleCamera,
-              isCameraOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
-            ),
-            if (!hide) _buildControlButton(
-              isMicOn ? Icons.mic : Icons.mic_off,
-              toggleMic,
-              isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
-            ),
-            if (!hide) _buildControlButton(
-              Icons.flip_camera_ios,
-                frontCamera,
-              Colors.green
-            ),
+            if (!hide)
+              _buildControlButton(
+                isCameraOn ? Icons.videocam : Icons.videocam_off,
+                toggleCamera,
+                isCameraOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+              ),
+            if (!hide)
+              _buildControlButton(
+                isMicOn ? Icons.mic : Icons.mic_off,
+                toggleMic,
+                isMicOn ? Colors.green : Colors.grey[800] ?? Colors.grey,
+              ),
+            if (!hide)
+              _buildControlButton(
+                  Icons.flip_camera_ios, frontCamera, Colors.green),
             if (!hide) _buildControlButton(Icons.call_end, endCall, Colors.red),
           ],
         ),
@@ -658,7 +644,8 @@ class _VideoCallState extends State<VideoCall> {
     );
   }
 
-  Widget _buildControlButton(IconData icon, VoidCallback onPressed, Color color) {
+  Widget _buildControlButton(
+      IconData icon, VoidCallback onPressed, Color color) {
     return RawMaterialButton(
       onPressed: onPressed,
       shape: const CircleBorder(),
@@ -670,7 +657,6 @@ class _VideoCallState extends State<VideoCall> {
 
   @override
   void dispose() {
-    _cameraController.dispose();
     _timer?.cancel();
     _engine?.leaveChannel();
     _engine?.release();
