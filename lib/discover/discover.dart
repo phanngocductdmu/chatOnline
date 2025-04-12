@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -80,7 +81,7 @@ class _DiscoverState extends State<Discover> with SingleTickerProviderStateMixin
                 );
               },
               child: Text(
-                'Tìm kiếm',
+                'search'.tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -107,8 +108,8 @@ class _DiscoverState extends State<Discover> with SingleTickerProviderStateMixin
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.green[700],
               tabs: [
-                Tab(text: 'Game'),
-                Tab(text: 'Ứng dụng'),
+                Tab(text: 'game'.tr()),
+                Tab(text: 'app'.tr()),
               ],
             ),
             // TabBarView

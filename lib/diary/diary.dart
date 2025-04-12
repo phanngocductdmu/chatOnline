@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
+
 import 'seeMomemts.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -184,7 +186,7 @@ class _DiaryState extends State<Diary> {
                 );
               },
               child: Text(
-                'Tìm kiếm',
+                'search'.tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -276,7 +278,7 @@ class _DiaryState extends State<Diary> {
                       child: Row(
                         children: [
                           Text(
-                            "Hôm nay bạn thế nào?",
+                            "diary_title".tr(),
                             style: TextStyle(color: Colors.grey, fontSize: 18),
                           ),
                           SizedBox(width: 10),
@@ -335,10 +337,10 @@ class _DiaryState extends State<Diary> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.0, ),
                   child: Text(
-                    "Khoảnh khắc",
+                    "moment".tr(),
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,25 +56,21 @@ class _MyHomePageState extends State<LoginScreen> {
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     bool isInputValid =
         _emailController.text.isNotEmpty && _passwordController.text.isNotEmpty;
-
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus(); // Ẩn bàn phím
-        setState(() {}); // Cập nhật lại giao diện khi ẩn bàn phím
+        FocusScope.of(context).unfocus();
+        setState(() {});
       },
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(kToolbarHeight),
           child: AppBar(
             leading: Padding(
-              padding: const EdgeInsets.only(left: 10), // Thụt vào bên phải 10
+              padding: const EdgeInsets.only(left: 10),
               child: IconButton(
                 icon: Icon(Icons.arrow_back),
                 onPressed: () {
@@ -81,7 +78,7 @@ class _MyHomePageState extends State<LoginScreen> {
                 },
               ),
             ),
-            leadingWidth: 40, // Điều chỉnh kích thước để vừa padding
+            leadingWidth: 40,
             flexibleSpace: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -92,7 +89,7 @@ class _MyHomePageState extends State<LoginScreen> {
               ),
             ),
             title: Text(
-              'Đăng Nhập',
+              'login'.tr(),
               style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -110,40 +107,40 @@ class _MyHomePageState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                // Khoảng cách bên trong text
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF1F5F6), // Màu nền của text
+                  color: Color(0xFFF1F5F6),
                 ),
                 child: Text(
-                  'Vui lòng nhập tên đăng nhập và mật khẩu để đăng nhập',
+                  'title_login'.tr(),
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFFB2B5BA), // Màu chữ
+                    color: Color(0xFFB2B5BA),
                   ),
                   textAlign: TextAlign.start,
                 ),
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 25), // Padding ngang
+                const EdgeInsets.symmetric(horizontal: 25),
                 child: Column(
                   children: [
                     SizedBox(height: 5),
                     TextField(
                       controller: _emailController,
                       style: TextStyle(
-                        color: Colors.black, // Màu chữ nhập vào
-                        fontSize: 16, // Kích thước chữ nhỏ lại
+                        color: Colors.black,
+                        fontSize: 16,
                       ),
                       onChanged: (value) {
-                        setState(() {}); // Cập nhật giao diện khi có thay đổi
+                        setState(() {});
                       },
+                      cursorColor: Colors.green,
                       decoration: InputDecoration(
-                        hintText: 'Tên đăng nhập', // Hiển thị khi chưa nhập
+                        hintText: 'username'.tr(),
                         hintStyle: TextStyle(
-                          color: Colors.grey, // Màu chữ của hint
-                          fontSize: 16, // Kích thước chữ của hint
+                          color: Colors.grey,
+                          fontSize: 16,
                         ),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(color: Color(0xFFE0E4E7)),
@@ -154,12 +151,12 @@ class _MyHomePageState extends State<LoginScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             Icons.clear,
-                            color: Colors.grey, // Thay đổi màu của icon "clear"
+                            color: Colors.grey,
                           ),
                           onPressed: () {
-                            _emailController.clear(); // Xóa nội dung email
+                            _emailController.clear();
                             _passwordController
-                                .clear(); // Xóa nội dung mật khẩu nếu cần
+                                .clear();
                           },
                         ),
                       ),
@@ -175,8 +172,9 @@ class _MyHomePageState extends State<LoginScreen> {
                       onChanged: (value) {
                         setState(() {});
                       },
+                      cursorColor: Colors.green,
                       decoration: InputDecoration(
-                        hintText: 'Mật khẩu',
+                        hintText: 'password'.tr(),
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontSize: 16,
@@ -217,7 +215,7 @@ class _MyHomePageState extends State<LoginScreen> {
                           // Thực hiện hành động khi nhấn vào "Lấy lại mật khẩu"
                         },
                         child: Text(
-                          'Lấy lại mật khẩu',
+                          'retrieve_password'.tr(),
                           style: TextStyle(
                             color: Color(0xFF11998e), // Màu xanh lá
                             fontSize: 14, // Kích thước chữ

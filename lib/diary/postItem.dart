@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -457,7 +458,7 @@ class PostItemState extends State<PostItem> {
                           Wrap(
                             children: [
                               Text(
-                                fullName,
+                                '$fullName ',
                                 style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.black,
@@ -465,9 +466,9 @@ class PostItemState extends State<PostItem> {
                               ),
                               Text(
                                 type == 'avatar'
-                                    ? " đã thay đổi ảnh đại diện"
+                                    ? "changed_profile_picture".tr()
                                     : type == 'imageCover'
-                                        ? " đã thay đổi ảnh bìa"
+                                        ? "changed_cover_photo".tr()
                                         : "",
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.black),

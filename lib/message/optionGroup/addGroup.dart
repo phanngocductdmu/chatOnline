@@ -37,12 +37,9 @@ class AddGroupState extends State<AddGroup> {
     final ref = FirebaseDatabase.instance.ref();
     final friendsRef = ref.child('friends/${widget.userId}');
     final usersRef = ref.child('users');
-
     final snapshot = await friendsRef.get();
-
     if (snapshot.exists && snapshot.value is Map) {
       Map<String, dynamic> friendIds = Map<String, dynamic>.from(snapshot.value as Map);
-
       if (friendIds.isNotEmpty) {
         friends.clear();
         for (String friendId in friendIds.keys) {
@@ -65,7 +62,6 @@ class AddGroupState extends State<AddGroup> {
     }
   }
 
-
   void _filterFriends() {
     String query = _searchController.text.toLowerCase();
     setState(() {
@@ -77,7 +73,6 @@ class AddGroupState extends State<AddGroup> {
 
   void _toggleSelection(String friendId) {
     if (widget.member.contains(friendId)) return;
-
     setState(() {
       if (selectedFriends.contains(friendId)) {
         selectedFriends.remove(friendId);
@@ -88,6 +83,7 @@ class AddGroupState extends State<AddGroup> {
   }
 
   Future<void> addMembersToGroup() async {
+    final database = FirebaseDatabase.instance.ref();
     if (selectedFriends.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Vui lòng chọn ít nhất một thành viên để thêm vào nhóm")),
@@ -95,8 +91,26 @@ class AddGroupState extends State<AddGroup> {
       return;
     }
     final groupRef = FirebaseDatabase.instance.ref().child('chatRooms/${widget.chatRoomId}/members');
+
     for (var id in selectedFriends) {
-      await groupRef.child(id).set(true);
+      print("🧪 Kiểm tra ID: $id");
+      final memberSnapshot = await groupRef.child(id).once();
+      final isAlreadyMember = memberSnapshot.snapshot.exists;
+      print("⚠️ ID $id đã tồn tại? $isAlreadyMember");
+
+      if (!isAlreadyMember) {
+        await groupRef.child(id).set(true);
+
+        final messagePath = 'chats/${widget.chatRoomId}/messages';
+        final messagesRef = database.child(messagePath);
+        final newMessageRef = messagesRef.push();
+
+        await newMessageRef.set({
+          'senderId': id,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'typeChat': 'addGroup',
+        });
+      }
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Đã thêm thành viên vào nhóm!")),

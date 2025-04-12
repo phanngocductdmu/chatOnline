@@ -228,6 +228,7 @@ class MessageState extends State<Message> {
                   MaterialPageRoute(
                     builder: (context) => OptionGroup(
                       idFriend: widget.idFriend,
+                      numMembers: widget.numMembers,
                       idChatRoom: widget.chatRoomId,
                       groupName: widget.groupName,
                       idUser: widget.userId,
@@ -389,6 +390,7 @@ class MessageState extends State<Message> {
                       groupAvatar: widget.groupAvatar,
                       member: List<String>.from(widget.member),
                       description: widget.description,
+                      numMembers: widget.numMembers,
                       onSearchToggle: (bool value) {
                         setState(() {
                           isSearchActive = value;

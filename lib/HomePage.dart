@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'mess.dart';
 import 'Contacts.dart';
@@ -54,7 +55,7 @@ class HomePageState extends State<HomePage> {
                 height: 24,
                 color: _selectedIndex == 0 ? Colors.green : Colors.grey,
               ),
-              label: 'Tin nhắn',
+              label: 'message'.tr(),
             ),
             BottomNavigationBarItem(
               icon: Image.asset(
@@ -63,7 +64,7 @@ class HomePageState extends State<HomePage> {
                 height: 24,
                 color: _selectedIndex == 1 ? Colors.green : Colors.grey,
               ),
-              label: 'Danh bạ',
+              label: 'contacts'.tr(),
             ),
             BottomNavigationBarItem(
               icon: Image.asset(
@@ -72,7 +73,7 @@ class HomePageState extends State<HomePage> {
                 height: 22,
                 color: _selectedIndex == 2 ? Colors.green : Colors.grey,
               ),
-              label: 'Khám phá',
+              label: 'discover'.tr(),
             ),
             BottomNavigationBarItem(
               icon: Image.asset(
@@ -81,7 +82,7 @@ class HomePageState extends State<HomePage> {
                 height: 24,
                 color: _selectedIndex == 3 ? Colors.green : Colors.grey,
               ),
-              label: 'Nhật ký',
+              label: 'diary'.tr(),
             ),
             BottomNavigationBarItem(
               icon: Icon(
@@ -89,7 +90,7 @@ class HomePageState extends State<HomePage> {
                 size: 25,
                 color: _selectedIndex == 4 ? Colors.green : Colors.grey,
               ),
-              label: 'Cá nhân',
+              label: 'user'.tr(),
             ),
           ],
         ),

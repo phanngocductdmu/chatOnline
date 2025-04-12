@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,7 +52,6 @@ class _MessState extends State<Mess> {
     });
   }
 
-
   void _fetchChatRooms() {
     _database.child('chatRooms').onValue.listen((event) {
       if (event.snapshot.value == null) {
@@ -59,7 +59,6 @@ class _MessState extends State<Mess> {
       }
       final Object? rawData = event.snapshot.value;
       if (rawData is! Map) {
-        // print("❌ Dữ liệu chatRooms không hợp lệ: $rawData");
         return;
       }
       Map<dynamic, dynamic> data = rawData;
@@ -67,7 +66,6 @@ class _MessState extends State<Mess> {
 
       data.forEach((key, value) {
         if (value is! Map) {
-          // print("⚠️ Bỏ qua phòng chat $key vì dữ liệu không hợp lệ: $value");
           return;
         }
         if (value['members'] is Map && value['members'].containsKey(idUser)) {
@@ -178,7 +176,7 @@ class _MessState extends State<Mess> {
                 );
               },
               child: Text(
-                'Tìm kiếm',
+                'search'.tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -225,7 +223,7 @@ class _MessState extends State<Mess> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Tất cả',
+                      'all'.tr(),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Icon(

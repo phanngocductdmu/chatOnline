@@ -7,11 +7,15 @@ import 'package:chatonline/message/option/CreateGroup.dart';
 import 'package:image_picker/image_picker.dart';
 import 'addGroup.dart';
 import 'groupDescription.dart';
+import 'package:chatonline/HomePage.dart';
+import 'groupMembers.dart';
+import 'groupCalendar.dart';
 
 class OptionGroup extends StatefulWidget {
   final String idFriend, idChatRoom, groupName, idUser, groupAvatar, description;
   final Function(bool) onSearchToggle;
   final List<String> member;
+  final int numMembers;
 
   const OptionGroup({
     super.key,
@@ -21,7 +25,9 @@ class OptionGroup extends StatefulWidget {
     required this.groupName,
     required this.idUser,
     required this.groupAvatar,
-    required this.member, required this.description,
+    required this.member,
+    required this.description,
+    required this.numMembers,
   });
 
   @override
@@ -273,6 +279,131 @@ class OptionGroupState extends State<OptionGroup> {
               Navigator.pop(context);
             },
             child: Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> leaveGroup({required String chatRoomId, required String userId, required bool silent,}) async {
+    final database = FirebaseDatabase.instance.ref();
+    final membersRef = database.child('chatRooms/$chatRoomId/members/$userId');
+    await membersRef.remove();
+
+    if (!silent) {
+      final messagePath = 'chats/$chatRoomId/messages';
+      final messagesRef = database.child(messagePath);
+
+      final newMessageRef = messagesRef.push();
+      await newMessageRef.set({
+        'senderId': userId,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'typeChat': 'outGroup',
+      });
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => HomePage()),
+          (route) => route.isFirst,
+    );
+  }
+
+  void showLeaveGroupSheet(BuildContext context, String chatRoomId, String userId) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                margin: EdgeInsets.only(bottom: 16),
+              ),
+              // Title
+              Text(
+                "Tuỳ chọn rời nhóm",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 12),
+
+              Divider(),
+
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.exit_to_app, color: Colors.red),
+                ),
+                title: Text('Rời nhóm', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmLeave(context, chatRoomId, userId, silent: false);
+                },
+              ),
+
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.exit_to_app_outlined, color: Colors.red),
+                ),
+                title: Text('Rời nhóm trong im lặng', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmLeave(context, chatRoomId, userId, silent: true);
+                },
+              ),
+
+              SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmLeave(BuildContext context, String chatRoomId, String userId, {required bool silent}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Xác nhận"),
+        content: Text(silent
+            ? "Bạn có chắc muốn rời nhóm trong im lặng không?"
+            : "Bạn có chắc muốn rời nhóm không?"),
+        actions: [
+          TextButton(
+            child: Text("Huỷ", style: TextStyle(color: Colors.black)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text("Xác nhận", style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.pop(context);
+              await leaveGroup(
+                chatRoomId: chatRoomId,
+                userId: userId,
+                silent: silent,
+              );
+            },
           ),
         ],
       ),
@@ -536,10 +667,7 @@ class OptionGroupState extends State<OptionGroup> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CreateGroupScreen(
-                            userId: widget.idUser,
-                            friendId: widget.idFriend,
-                          ),
+                          builder: (context) => GroupCalendar(userId: widget.idUser, chatRoomId: widget.idChatRoom)
                         ),
                       );
                     },
@@ -579,16 +707,18 @@ class OptionGroupState extends State<OptionGroup> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.group, color: Color(0xFF7B848D)), // Icon nhóm
-                    title: Text('Xem thành viên'),
+                    leading: Icon(Icons.group, color: Color(0xFF7B848D)),
+                    title: Text('Xem thành viên (${widget.numMembers})'),
                     trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => CreateGroupScreen(
+                          builder: (context) => GroupMembers(
+                            numMembers: widget.numMembers,
+                            member: widget.member,
+                            chatRoomId: widget.idChatRoom,
                             userId: widget.idUser,
-                            friendId: widget.idFriend,
                           ),
                         ),
                       );
@@ -689,30 +819,30 @@ class OptionGroupState extends State<OptionGroup> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: Icon(Icons.report, color: Color(0xFF7B848D)), // Màu mới
+                    leading: Icon(Icons.report, color: Color(0xFF7B848D)),
                     title: Text('Báo xấu', style: TextStyle(color: Colors.black)),
                     onTap: () {
-                      // Xử lý báo xấu
+
                     },
                   ),
 
-                  Divider(thickness: 1, color: Colors.black12, indent: 56), // Thụt vào ngang với text
+                  Divider(thickness: 1, color: Colors.black12, indent: 56),
 
                   ListTile(
-                    leading: Icon(Icons.delete_forever, color: Color(0xFF7B848D)), // Màu mới
+                    leading: Icon(Icons.delete_forever, color: Color(0xFF7B848D)),
                     title: Text('Xóa lịch sử trò chuyện', style: TextStyle(color: Colors.black)),
                     onTap: () {
-                      // Xử lý xóa lịch sử trò chuyện
+
                     },
                   ),
 
-                  Divider(thickness: 1, color: Colors.black12, indent: 56), // Thụt vào ngang với text
+                  Divider(thickness: 1, color: Colors.black12, indent: 56),
 
                   ListTile(
-                    leading: Icon(Icons.exit_to_app, color: Colors.red), // Icon phù hợp hơn
+                    leading: Icon(Icons.exit_to_app, color: Colors.red),
                     title: Text('Rời nhóm', style: TextStyle(color: Colors.red)),
                     onTap: () {
-                      // Xử lý rời nhóm
+                      showLeaveGroupSheet(context, widget.idChatRoom, widget.idUser);
                     },
                   ),
                 ],

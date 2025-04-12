@@ -1,5 +1,6 @@
 import 'package:chatonline/Contacts/all.dart';
 import 'package:chatonline/Contacts/justVisited.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:chatonline/Contacts/LoiMoiKetBan.dart';
@@ -85,7 +86,7 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
   }
 
   final List<Widget> _views = [
-    const LoiMoiKetBan(),  // Sử dụng widget LoiMoiKetBan từ tệp đã import
+    const LoiMoiKetBan(),
     // const DanhBaMayView(),
     // const LichSinhNhatView(),
   ];
@@ -97,15 +98,15 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
       body: DefaultTabController(
         length: 2,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(), // Hiệu ứng cuộn mượt
+          physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
               Container(
-                color: Colors.white, // Đặt màu nền trắng
+                color: Colors.white,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
                   leading: const Icon(Icons.person_add, color: Colors.teal),
-                  title: const Text('Lời mời kết bạn'),
+                  title: Text('friend_request'.tr()),
                   trailing: const Icon(Icons.navigate_next, color: Colors.grey),
                   onTap: () {
                     Navigator.push(
@@ -122,8 +123,8 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
                   leading: const Icon(Icons.contacts, color: Colors.blue),
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Danh bạ máy'),
+                    children: [
+                      Text('phone_book'.tr()),
                       Text(
                         'Liên hệ có dùng Test',
                         style: TextStyle(fontSize: 14, color: Colors.grey),
@@ -146,8 +147,8 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
                   leading: const Icon(Icons.cake, color: Colors.pink),
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Lịch sinh nhật'),
+                    children: [
+                      Text('birthday_calendar'.tr()),
                       Text(
                         'Theo dõi sinh nhật của bạn bè',
                         style: TextStyle(fontSize: 14, color: Colors.grey),
@@ -175,8 +176,8 @@ class FriendsState extends State<Friends> with SingleTickerProviderStateMixin {
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: Colors.green[700],
                   tabs: [
-                    Tab(text: 'Tất cả $friendCount'),
-                    Tab(text: 'Mới truy cập $friendOnlineCount'),
+                    Tab(text: 'all'.tr(namedArgs: {'count': friendCount.toString()})),
+                    Tab(text: 'new_visit'.tr(namedArgs: {'count': friendOnlineCount.toString()})),
                   ],
                 ),
               ),

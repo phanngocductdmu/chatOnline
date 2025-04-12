@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -108,7 +109,7 @@ class MessageInputState extends State<MessageInput> {
         'urlFile': urlFile,
         'hiddenBy': widget.idFriend,
       };
-      // Nếu có tin nhắn trả lời
+
       if (replyMessage != null && replyMessage['id'] != null && replyMessage['id'] is String) {
         messageData['replyTo'] = replyMessage['id'];
         messageData['replyText'] = replyMessage['text'] ?? 'Không có tin nhắn';
@@ -760,7 +761,7 @@ class MessageInputState extends State<MessageInput> {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: "Trả lời: ",
+                    text: "reply".tr(),
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
@@ -774,7 +775,7 @@ class MessageInputState extends State<MessageInput> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.close, size: 16), // 🔹 Thu nhỏ nút xóa
+            icon: Icon(Icons.close, size: 16),
             onPressed: () {
               widget.onClearReply?.call();
             },
@@ -794,7 +795,7 @@ class MessageInputState extends State<MessageInput> {
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: const InputDecoration(hintText: 'Tin nhắn', border: InputBorder.none),
+              decoration: InputDecoration(hintText: 'message'.tr(), border: InputBorder.none),
               onChanged: _onTextChanged,
             ),
           ),

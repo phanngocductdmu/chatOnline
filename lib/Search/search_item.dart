@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:chatonline/message/option/personalPage/personalPageF.dart';
@@ -105,7 +106,7 @@ class SearchItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Kết bạn',
+                      'make_friend'.tr(),
                       style: TextStyle(
                         color: Color(0xFF11998e),
                         fontWeight: FontWeight.bold,
@@ -184,7 +185,7 @@ class SearchItemChatRooms extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Nhắn tin',
+                      'texting'.tr(),
                       style: TextStyle(
                         color: Color(0xFF11998e),
                         fontWeight: FontWeight.bold,

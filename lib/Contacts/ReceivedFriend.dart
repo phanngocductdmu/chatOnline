@@ -120,15 +120,12 @@ class _DaNhanViewState extends State<DaNhanView> {
         itemBuilder: (context, index) {
           var invitation = receivedInvitations[index];
 
-          // Lấy tên và ảnh người gửi, nếu có
           String fromName = invitation["fromName"] ?? "Người dùng chưa xác định";
-          String fromAVT = invitation["fromAVT"] ?? ""; // URL mặc định
+          String fromAVT = invitation["fromAVT"] ?? "";
 
-          // Chuyển timestamp thành thời gian
           DateTime time = DateTime.fromMillisecondsSinceEpoch(invitation["timestamp"]);
-          Duration difference = DateTime.now().difference(time);  // Tính sự khác biệt
+          Duration difference = DateTime.now().difference(time);
 
-          // Sử dụng hàm _formatTime để hiển thị thời gian
           String timeString = _formatTime(difference);
 
           return ListTile(

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,7 +84,7 @@ class _UserState extends State<User> {
                 );
               },
               child: Text(
-                'Tìm kiếm',
+                'search'.tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w400,
@@ -152,7 +153,7 @@ class _UserState extends State<User> {
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 Text(
-                                  "Xem trang cá nhân",
+                                  "view_profile".tr(),
                                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
                               ],
@@ -170,7 +171,6 @@ class _UserState extends State<User> {
                         child: GestureDetector(
                           onTap: () {
                             print("Đã nhấn vào icon");
-                            // Xử lý điều hướng hoặc hành động khi nhấn vào icon
                           },
                           child: Container(
                             padding: const EdgeInsets.all(2),
@@ -222,8 +222,8 @@ class _UserState extends State<User> {
                                   "Chat bot",
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
-                                const Text(
-                                  "Trợ lý ảo hỗ trợ thông minh",
+                                Text(
+                                  "title_chatbot".tr(),
                                   style: TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
                               ],
@@ -277,12 +277,12 @@ class _UserState extends State<User> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Cloud của tôi",
+                                Text(
+                                  "my_cloud".tr(),
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
-                                const Text(
-                                  "Lưu trữ các tin nhắn quan trọng",
+                                Text(
+                                  "title_cloud".tr(),
                                   style: TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
                               ],
@@ -336,12 +336,12 @@ class _UserState extends State<User> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Dữ liệu đám mây",
+                                Text(
+                                  "cloud_data".tr(),
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
-                                const Text(
-                                  "Quản lý dữ liệu của bạn",
+                                Text(
+                                  "title_cloud_data".tr(),
                                   style: TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
                               ],
@@ -393,11 +393,11 @@ class _UserState extends State<User> {
                             ),
                             const SizedBox(width: 3),
                             // Tên và trạng thái
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Tài khoản và bảo mật",
+                                  "account_and_password".tr(),
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
                               ],
@@ -449,11 +449,11 @@ class _UserState extends State<User> {
                             ),
                             const SizedBox(width: 3),
                             // Tên và trạng thái
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Quyền riêng tư",
+                                  "privacy".tr(),
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                                 ),
                               ],

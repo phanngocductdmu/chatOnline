@@ -6,15 +6,25 @@ import 'Login.dart';
 import 'package:chatonline/message/call/IncomingCallScreen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'createAccount.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp();
   await initializeDateFormatting('vi', null);
   await FirebaseAppCheck.instance.activate(
     androidProvider: AndroidProvider.debug,
   );
-  runApp(const MyApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('vi')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('vi'),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -145,6 +155,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      locale: context.locale,
+      supportedLocales: context.supportedLocales,
+      localizationsDelegates: context.localizationDelegates,
       home: const MyHomePage(),
     );
   }
@@ -153,6 +166,62 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
 
+  void _showLanguageSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Text('select_language'.tr(),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Divider(color: Colors.grey[300]),
+              ListTile(
+                leading: const Icon(Icons.language, color: Colors.green),
+                title: Text('Tiếng Việt'),
+                onTap: () {
+                  context.setLocale(const Locale('vi'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.language, color: Colors.blue),
+                title: const Text('English'),
+                onTap: () {
+                  context.setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,7 +229,7 @@ class MyHomePage extends StatelessWidget {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _languageButton(),
+          _languageButton(context),
           _backgroundImage(),
           _actionButtons(context),
         ],
@@ -168,15 +237,15 @@ class MyHomePage extends StatelessWidget {
     );
   }
 
-  Widget _languageButton() {
+  Widget _languageButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 65, right: 20),
       child: Align(
         alignment: Alignment.topRight,
         child: ElevatedButton(
-          onPressed: null, // Add your language change logic here
+          onPressed: () => _showLanguageSheet(context),
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size(134, 40), // Tránh lỗi overflow
+            minimumSize: const Size(134, 40),
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(
@@ -185,10 +254,10 @@ class MyHomePage extends StatelessWidget {
             ),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min, // Không chiếm toàn bộ không gian
+            mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text('Tiếng Việt', style: TextStyle(fontSize: 13)),
+                child: Text('language'.tr(), style: TextStyle(fontSize: 13)),
               ),
               const SizedBox(width: 3),
               Image.asset('assets/image/morong.png', width: 18, height: 14),
@@ -245,11 +314,13 @@ class MyHomePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(50),
               ),
             ),
-            child: const Text('Đăng nhập', style: TextStyle(fontSize: 15)),
+            child: Text('login'.tr(), style: const TextStyle(fontSize: 15)),
           ),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CreateAccount()));
+            },
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 49),
               backgroundColor: const Color(0xFFE9EEF0),
@@ -258,7 +329,7 @@ class MyHomePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(50),
               ),
             ),
-            child: const Text('Tạo tài khoản mới', style: TextStyle(fontSize: 15)),
+            child: Text('Create_new_account'.tr(), style: TextStyle(fontSize: 15)),
           ),
         ],
       ),

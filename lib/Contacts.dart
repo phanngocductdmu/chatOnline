@@ -1,6 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:chatonline/Search/TimKiem.dart';
-import 'package:chatonline/Contacts/fiends.dart';
+import 'package:chatonline/Contacts/friends.dart';
 import 'package:chatonline/Contacts/group.dart';
 import 'package:chatonline/Contacts/favourite.dart';
 
@@ -59,8 +60,8 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
               ),
             ),
           ),
-          title: const Text(
-            'Tìm kiếm',
+          title: Text(
+            'search'.tr(),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w400,
@@ -96,10 +97,10 @@ class _DanhBaState extends State<DanhBa> with SingleTickerProviderStateMixin {
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.black, // Màu chữ của tab khi được chọn
                 unselectedLabelColor: Color(0xff707070), // Màu chữ của tab khi không được chọn
-                tabs: const [
-                  Tab(text: 'Bạn bè'),
-                  Tab(text: 'Nhóm'),
-                  Tab(text: 'Yêu thích'),
+                tabs: [
+                  Tab(text: 'friend'.tr()),
+                  Tab(text: 'group'.tr()),
+                  Tab(text: 'favourite'.tr()),
                 ],
               ),
             ),

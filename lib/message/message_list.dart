@@ -12,6 +12,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'FullScreenVideoView.dart';
 import 'package:chatonline/message/LinkPreview.dart';
 
+
 class MessageList extends StatefulWidget {
   final String chatRoomId;
   final String userId;
@@ -182,6 +183,8 @@ class MessageListState extends State<MessageList> {
             'replyTo': value['replyTo'] ?? '',
             'replyText': value['replyText'] ?? '',
             'totalTime': value['totalTime'] ,
+            'reminderTime': value['reminderTime'] ?? '',
+            'repeat': value['repeat'] ?? ''
           });
         }
 
@@ -212,7 +215,6 @@ class MessageListState extends State<MessageList> {
       return {
         'avatar': data?['AVT']?.toString() ?? '',
         'fullName': data?['fullName']?.toString() ?? '',
-        'email': data?['email']?.toString() ?? ''
       };
     } catch (e) {
       return {'avatar': '', 'fullName': '', 'email': ''};
@@ -604,6 +606,26 @@ class MessageListState extends State<MessageList> {
     });
   }
 
+  String formatTimestamp(int timestamp) {
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final weekday = DateFormat('EEEE', 'vi_VN').format(dateTime);
+    final day = DateFormat('dd', 'vi_VN').format(dateTime);
+    final month = DateFormat('MM', 'vi_VN').format(dateTime);
+    final time = DateFormat('HH:mm', 'vi_VN').format(dateTime);
+
+    return '$weekday, $day tháng $month lúc $time';
+  }
+
+  String formatTimesMoth(int timestamp) {
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return 'THG ${dateTime.month}';
+  }
+
+  String formatTimesDay(int timestamp) {
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return DateFormat('dd').format(dateTime);
+  }
+
   @override
   Widget build(BuildContext context) {
     isSearch = widget.isSearchActive;
@@ -802,7 +824,7 @@ class MessageListState extends State<MessageList> {
                   });
                 },
                 onLongPress: () {
-                  if (message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls') {
+                  if (message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls' && message['typeChat'] != 'outGroup' && message['typeChat'] != 'addGroup' && message['typeChat'] != 'reminder') {
                     showModalBottomSheet(
                       context: context,
                       shape: RoundedRectangleBorder(
@@ -884,11 +906,11 @@ class MessageListState extends State<MessageList> {
               padding: const EdgeInsets.symmetric(vertical: 11.0, horizontal: 8.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls'
+                mainAxisAlignment: message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls' || message['typeChat'] == 'outGroup' || message['typeChat'] == 'addGroup' || message['typeChat'] == 'reminder'
                     ? MainAxisAlignment.center
                     : (isMe ? MainAxisAlignment.end : MainAxisAlignment.start),
                 children: [
-                  if (!isMe && message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls')
+                  if (!isMe && message['typeChat'] != 'block' && message['typeChat'] != 'blockCalls' && message['typeChat'] != 'outGroup' && message['typeChat'] != 'addGroup'  && message['typeChat'] != 'reminder')
                     Padding(
                       padding: const EdgeInsets.only(right: 5.0),
                       child: message['avatar'] == null || message['avatar'].isEmpty
@@ -908,7 +930,14 @@ class MessageListState extends State<MessageList> {
                       ConstrainedBox(
                         constraints: BoxConstraints(
                           minWidth: 50,
-                          maxWidth: MediaQuery.of(context).size.width * 0.6,
+                          maxWidth: MediaQuery.of(context).size.width *
+                              ((message['typeChat'] == 'block' ||
+                                  message['typeChat'] == 'blockCalls' ||
+                                  message['typeChat'] == 'outGroup' ||
+                                  message['typeChat'] == 'addGroup' ||
+                                  message['typeChat'] == 'reminder')
+                                  ? 0.8
+                                  : 0.6),
                         ),
                         child: Stack(
                           clipBehavior: Clip.none,
@@ -916,10 +945,10 @@ class MessageListState extends State<MessageList> {
                             IntrinsicWidth(
                               child: Container(
                                 padding: EdgeInsets.all(
-                                  (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls') ? 5.0 : 12.0,
+                                  (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls' || message['typeChat'] == 'outGroup' || message['typeChat'] == 'addGroup' ) ? 5.0 : 12.0,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls')
+                                  color: (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls' || message['typeChat'] == 'outGroup' || message['typeChat'] == 'addGroup' || message['typeChat'] == 'reminder')
                                       ? Colors.white
                                       : message['typeChat'] == 'sticker' ||
                                       message['typeChat'] == 'image' ||
@@ -929,13 +958,13 @@ class MessageListState extends State<MessageList> {
                                       ? const Color(0xff13cc80)
                                       : (isMe ? const Color(0xFFB1EBC7) : Colors.white),
                                   borderRadius: BorderRadius.circular(
-                                    (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls') ? 30.0 : 8.0,
+                                    (message['typeChat'] == 'block' || message['typeChat'] == 'blockCalls' || message['typeChat'] == 'outGroup' || message['typeChat'] == 'addGroup' ) ? 30.0 : 8.0,
                                   ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (message['replyText'] != null && message['replyText'].isNotEmpty && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                                    if (message['replyText'] != null && message['replyText'].isNotEmpty && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls' &&  message['typeChat'] != 'outGroup' &&  message['typeChat'] != 'addGroup' &&  message['typeChat'] != 'reminder')
                                       GestureDetector(
                                         onTap: () {
                                           _scrollToReplyMessage(message['replyTo']);
@@ -953,13 +982,13 @@ class MessageListState extends State<MessageList> {
                                           ),
                                         ),
                                       ),
-                                    if (widget.typeRoom && !isMe)
+                                    if (widget.typeRoom && !isMe  &&  message['typeChat'] != 'outGroup' && message['typeChat'] != 'addGroup' && message['typeChat'] != 'reminder')
                                       Text(
                                         message['name'],
                                         style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500),
                                       ),
                                     _buildMessageContent(message),
-                                    if (message['typeChat'] != 'sticker' && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                                    if (message['typeChat'] != 'sticker' && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls' &&  message['typeChat'] != 'outGroup' && message['typeChat'] != 'addGroup' && message['typeChat'] != 'reminder')
                                       Padding(
                                         padding: const EdgeInsets.only(top: 4),
                                         child: Text(
@@ -974,7 +1003,7 @@ class MessageListState extends State<MessageList> {
                                 ),
                               ),
                             ),
-                            if (message['typeChat'] != 'sticker' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                            if (message['typeChat'] != 'sticker' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls' &&  message['typeChat'] != 'outGroup' &&  message['typeChat'] != 'addGroup' &&  message['typeChat'] != 'reminder')
                               Positioned(
                                 left: isMe ? (message['typeChat'] == 'image' || message['typeChat'] == 'video' ? 20 : 10) : null,
                                 right: isMe ? null : (message['typeChat'] == 'image' || message['typeChat'] == 'video') ? 20 : 10,
@@ -1149,7 +1178,7 @@ class MessageListState extends State<MessageList> {
                           ],
                         ),
                       ),
-                      if (isMe && isSelected && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls')
+                      if (isMe && isSelected && message['typeChat'] != 'image' && message['typeChat'] != 'video' && message['typeChat'] != 'block' &&  message['typeChat'] != 'blockCalls' &&  message['typeChat'] != 'outGroup'  &&  message['typeChat'] != 'addGroup' &&  message['typeChat'] != 'reminder')
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
@@ -1457,11 +1486,173 @@ class MessageListState extends State<MessageList> {
           ],
         );
 
+      case 'outGroup':
+        return FutureBuilder<Map<String, String>>(
+          future: _fetchUserInfo(message['senderId']),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return SizedBox();
+            }
+            final userName = snapshot.data?['fullName'] ?? 'Một thành viên';
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(width: 5),
+                Icon(
+                  Icons.exit_to_app,
+                  color: Colors.red,
+                  size: 15,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  userName,
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  ' đã rời khỏi nhóm.',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ],
+            );
+          },
+        );
+
+      case 'addGroup':
+        return FutureBuilder<Map<String, String>>(
+          future: _fetchUserInfo(message['senderId']),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return SizedBox();
+            }
+            final userName = snapshot.data?['fullName'] ?? 'Một thành viên';
+            final avt = snapshot.data?['avatar'] ?? 'Một thành viên';
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                avt.isNotEmpty
+                    ? CircleAvatar(
+                  backgroundImage: NetworkImage(avt),
+                  radius: 10,
+                )
+                    : CircleAvatar(
+                  backgroundColor: Colors.grey,
+                  radius: 10,
+                  child: Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 10,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  userName,
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  ' thêm vào nhóm.',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ],
+            );
+          },
+        );
+
+      case 'reminder':
+        return FutureBuilder<Map<String, String>>(
+          future: _fetchUserInfo(message['senderId']),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return SizedBox();
+            }
+            bool isMe = message['senderId'] == widget.userId;
+            final userName = snapshot.data?['fullName'] ?? '';
+            final avt = snapshot.data?['avatar'] ?? '';
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    avt.isNotEmpty
+                        ? CircleAvatar(
+                      backgroundImage: NetworkImage(avt),
+                      radius: 10,
+                    )
+                        : CircleAvatar(
+                      backgroundColor: Colors.grey,
+                      radius: 10,
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 10,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      isMe ? 'Bạn' : userName,
+                      style: TextStyle(color: Colors.black),
+                    ),
+                    Text(
+                      ' đã tạo một nhắc hẹn',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Divider(color: Colors.grey[300], thickness: 1, height: 10),
+                SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        Text(formatTimesMoth(message['reminderTime']), style: TextStyle(color: Colors.red[800]),),
+                        Text(formatTimesDay(message['reminderTime']))
+                      ],
+                    ),
+                    SizedBox(width: 15),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(message['text'], style: TextStyle(color: Colors.black, fontSize: 18)),
+                        Text(formatTimestamp(message['reminderTime']), style: TextStyle(color: Colors.grey))
+                      ],
+                    )
+                  ],
+                ),
+                SizedBox(height: 10),
+                InkWell(
+                  onTap: () {
+
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 3),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.green, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Tham gia',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+
       case 'blockCalls':
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            widget.avt != null
+            widget.avt.isNotEmpty
                 ? CircleAvatar(
               backgroundImage: NetworkImage(widget.avt),
               radius: 10,
@@ -1472,7 +1663,7 @@ class MessageListState extends State<MessageList> {
               child: Icon(
                 Icons.person,
                 color: Colors.white,
-                size: 10,
+                size: 8,
               ),
             ),
             SizedBox(width: 8),

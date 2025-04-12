@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -249,8 +250,8 @@ class _TimKiemState extends State<TimKiem> {
               controller: searchController,
               style: const TextStyle(color: Colors.black),
               cursorColor: Colors.black,
-              decoration: const InputDecoration(
-                hintText: 'Tìm kiếm',
+              decoration: InputDecoration(
+                hintText: 'search'.tr(),
                 hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
                 isCollapsed: true,

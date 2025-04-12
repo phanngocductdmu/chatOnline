@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'requestFriend.dart';
@@ -71,8 +72,8 @@ class _LoiMoiKetBanState extends State<LoiMoiKetBan> {
               ),
             ),
           ),
-          title: const Text(
-            'Lời mời kết bạn',
+          title: Text(
+            'friend_request'.tr(),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w400,
@@ -107,9 +108,9 @@ class _LoiMoiKetBanState extends State<LoiMoiKetBan> {
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: Colors.black,
                 unselectedLabelColor: Color(0xff707070),
-                tabs: const [
-                  Tab(text: 'Đã nhận'),
-                  Tab(text: 'Đã gửi'),
+                tabs: [
+                  Tab(text: 'received'.tr()),
+                  Tab(text: 'sent'.tr()),
                 ],
               ),
             ),
